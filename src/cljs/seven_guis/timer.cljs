@@ -2,7 +2,7 @@
 
 (defn timer []
   (let [tick-freq 10
-        duration (atom 10.0)
+        duration (atom 0.0)
         elapsed (atom 0.0)]
     (fn []
       (js/setTimeout #(if (< @elapsed @duration) (swap! elapsed (partial + (/ 1 tick-freq)))) (/ 1000 tick-freq))

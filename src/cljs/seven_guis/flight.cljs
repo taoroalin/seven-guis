@@ -5,7 +5,6 @@
         start (atom nil)
         end (atom nil)]
     (fn []
-      (print @flight-type @start @end)
       [:div {:style {:display "flex" :flex-direction "column" :max-width 200}}
        [:select {:value @flight-type
                  :on-change #(reset! flight-type (-> % .-target .-value))}
