@@ -11,7 +11,6 @@
 (defparser string->ast "src/cells.insta")
 
 
-
 (defn letter->idx [letter] (- (.charCodeAt letter 0) 65))
 
 (defn clean-ast
@@ -116,7 +115,7 @@
                     [:input {:auto-focus true
                              :default-value (:raw cell)
                              :on-change #(set-cell state pos (-> % .-target .-value))
-                             :on-key #(swap! state assoc :editing pos)}]])]
+                             :on-key-down #(swap! state assoc :editing pos)}]])]
     (fn []
       (println "state" @state)
       [:div.cells

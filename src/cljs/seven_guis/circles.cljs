@@ -2,8 +2,16 @@
 
 (def default-radius 50)
 
-(defn radius-picker []
-  [:input {:type "range" :on-input #()}])
+(defn modify-history [state func history]
+  ())
+
+(defn radius-picker [id]
+  [:input {:type "range"
+           :auto-focus true
+           :default-value 1
+           :on-blur (fn [] (swap! state #(assoc :history (cons (assoc-in history []) (rest history)))))}])
+
+(defn fill-in [state id])
 
 (defn circle [update id {x :x y :y d :d filled? :filled?}]
   (let [r (/ d 2)
@@ -15,10 +23,12 @@
                    :left left
                    :width d
                    :height d
-                   :border-radius 100000
+                   :border-radius 10000 ;; want max border radius for smooth curves
                    :background-color (when filled? "lightgrey")
                    :border "2px solid black"}
-           :on-click #(update % id)}]))
+           :on-click #(update % id)
+           :on-context-menu #(do (.preventDefault %)
+                                 (.log js/console %))}]))
 
 (defn create-circle [event base-element]
   (let [mouse-x (.-clientX event)
@@ -36,15 +46,17 @@
 
 (defn circles []
   (let [state (atom {:history (list [{:x 100 :y 100 :d 100 :filled? false}])
-                     :undos 0})
+                     :undos 0
+                     :radius-picker nil})
         !canvas (atom nil)]
     (fn []
-      [:div [:div
-             [:button {:on-click #(swap! state (fn [state]
-                                                 (assoc state :undos (min (- (count (:history state)) 1)
-                                                                          (inc (:undos state))))))}
-              "Undo"]
-             [:button {:on-click #(swap! state update :undos (fn [undos] (max 0 (dec undos))))} "Redo"]]
+      [:div (if-let [id (:radius-picker @state)] [radius-picker id])
+       [:div
+        [:button {:on-click #(swap! state (fn [state]
+                                            (assoc state :undos (min (- (count (:history state)) 1)
+                                                                     (inc (:undos state))))))}
+         "Undo"]
+        [:button {:on-click #(swap! state update :undos (fn [undos] (max 0 (dec undos))))} "Redo"]]
        [:div {:style {:width "500px"
                       :height "500px"
                       :position "relative"
