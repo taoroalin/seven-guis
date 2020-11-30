@@ -24,7 +24,7 @@
 }
 .cells td.row-header{
   border:none;
-  min-width: 30px;
+  min-width: 50px;
 }
 .cells #editing{
   position:relative;
@@ -39,7 +39,7 @@
   width:100%;
 }
 .cells .equation{
-  color:navy;
+  border: 2px solid black;
 }
 
 

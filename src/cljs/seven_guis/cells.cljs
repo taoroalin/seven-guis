@@ -77,7 +77,8 @@
                                 state
                                 (let [ast (ast->ast ast)
                                       links (ast->links ast)
-                                      equation? (seq? (second ast))
+                                      _ (println ast)
+                                      equation? (coll? (second ast))
                                       state (remove-backlinks state pos)
                                       state (update-in state [:cells pos] #(merge % {:raw string
                                                                                      :equation ast
@@ -90,13 +91,14 @@
         cell (fn [cell pos]
                ^{:key (pos 1)} [:td {:class (when (:equation? cell) "equation") :on-click #(swap! state assoc :editing pos)} (:display cell)])
         editing-cell (fn [cell pos]
-                       ^{:key (pos 1)} [:td#editing [:input {:ref #(set! (.-activeElement js/document) %)
+                       ^{:key (pos 1)} [:td#editing [:input {:auto-focus true
                                                              :default-value (:raw cell)
                                                              :on-change #(set-cell pos (-> % .-target .-value))}]])]
     (fn []
       (println "state" @state)
       [:div.cells
-       [:p (str (ast->ast (string->ast "1")))]
+       [:p "Type an equation into the grid." [:br]
+        "Here's an example: " [:code "result = A1+A2+1"]]
        [:table
         [:thead [:tr [:th] (for [letter letters] ^{:key letter} [:th letter])]]
         [:tbody
