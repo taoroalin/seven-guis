@@ -33,6 +33,7 @@
        [:input {:type "number" :on-change #(reset! temperature (event-value %)) :value (.round js/Math @temperature)}] "Celsius ="
        [:input {:type "number" :on-change #(reset! temperature (fahrenheit->celsius (event-value %))) :value (.round js/Math (celsius->fahrenheit @temperature))}] "Fahrenheit"])))
 
+
 (defn flight-scheduler []
   (let [flight-type (atom "one-way flight")
         start (atom nil)
@@ -44,19 +45,40 @@
                  :on-change #(reset! flight-type (event-value %))}
         [:option "one-way flight"]
         [:option "return flight"]]
-       [:input {:type "date" :on-change #(reset! start (-> % .-target .-valueAsDate))}]
-       [:input {:type "date" :value @end :on-change #() :disabled (= @flight-type "one-way flight")}]
-       [:button {:on-click #(print "You have booked a" @flight-type "on" @start (if (= @flight-type "return flight") (str "returning on" @end ".") "."))} "Book"]])))
+       [:input {:type "date"
+                :valueAsDate @start
+                :on-change #(reset! start (-> % .-target .-valueAsDate))}]
+       [:input {:type "date"
+                :valueAsDate @end
+                :on-change #(reset! end (-> % .-target .-valueAsDate))
+                :disabled (= @flight-type "one-way flight")}]
+       [:button {:on-click #(js/alert (str "You have booked a " @flight-type " on " @start (if (= @flight-type "return flight") (str " returning on " @end ".") ".")))
+                 :disabled (and (= @flight-type "return flight") (> @start @end))} "Book"]])))
+
+(defn timer []
+  (let [tick-freq 10
+        duration (atom 10.0)
+        elapsed (atom 0.0)]
+    (fn []
+      (js/setTimeout #(swap! elapsed (partial + (/ 1 tick-freq))) (/ 1000 tick-freq))
+      [:div {:style {:max-width 300}}
+       [:div {:style {:background-color "darkgrey" :height "20px"}} [:div {:style {:height "100%" :width (str (int (* (/ @elapsed @duration) 100)) "%") :background-color "blue"}}]]
+       [:p (.toFixed @elapsed 2)]
+       [:div {:style {:display "flex" :flex-direction "row"}} [:p "Duration:"]
+        [:input {:type "range"
+                 :value @duration
+                 :on-input #(reset! duration (event-value %))}]]
+       [:button {:on-click #(reset! elapsed 0)} "Reset"]])))
 
 
 (defn home-page []
   (fn []
     [:span.main
      [:h1 "Tao Lin's Seven GUIs"]
-     [box
-      "Counter" [counter]]
+     [box "Counter" [counter]]
      [box "Temperature Converter" [temperature-converter]]
-     [box "Flight Scheduler" [flight-scheduler]]]))
+     [box "Flight Scheduler" [flight-scheduler]]
+     [box "Timer" [timer]]]))
 ;; -------------------------
 ;; Routes
 
