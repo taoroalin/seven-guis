@@ -5,72 +5,15 @@
    [reagent.session :as session]
    [reitit.frontend :as reitit]
    [clerk.core :as clerk]
-   [accountant.core :as accountant]))
-
-;; utils
-(def event-value #(-> % .-target .-value))
-
-;; components
-;; 
+   [accountant.core :as accountant]
+   [seven-guis.counter :refer [counter]]
+   [seven-guis.temperature :refer [temperature-converter]]
+   [seven-guis.flight :refer [flight-scheduler]]
+   [seven-guis.timer :refer [timer]]
+   [seven-guis.crud :refer [crud]]))
 
 (defn box [name contents]
   [:div {:style {:border "1px solid black" :border-radius "4px" :padding "10px"}} [:h3 name] contents])
-
-(defn counter []
-  (let [click-count (atom 0)]
-    (fn []
-      [:div
-       "The button has been clicked "  @click-count " times."
-       [:input {:type "button" :value "Click me!"
-                :on-click #(swap! click-count inc)}]])))
-
-(def celsius->fahrenheit #(+ 32 (* (/ 9 5) %)))
-(def fahrenheit->celsius #(* (/ 5 9) (- % 32)))
-(defn temperature-converter []
-  (let [temperature (atom nil)]
-    (fn []
-      [:div
-       [:input {:type "number" :on-change #(reset! temperature (event-value %)) :value (.round js/Math @temperature)}] "Celsius ="
-       [:input {:type "number" :on-change #(reset! temperature (fahrenheit->celsius (event-value %))) :value (.round js/Math (celsius->fahrenheit @temperature))}] "Fahrenheit"])))
-
-
-(defn flight-scheduler []
-  (let [flight-type (atom "one-way flight")
-        start (atom nil)
-        end (atom nil)]
-    (fn []
-      (print @flight-type @start @end)
-      [:div {:style {:display "flex" :flex-direction "column" :max-width 200}}
-       [:select {:value @flight-type
-                 :on-change #(reset! flight-type (event-value %))}
-        [:option "one-way flight"]
-        [:option "return flight"]]
-       [:input {:type "date"
-                :valueAsDate @start
-                :on-change #(reset! start (-> % .-target .-valueAsDate))}]
-       [:input {:type "date"
-                :valueAsDate @end
-                :on-change #(reset! end (-> % .-target .-valueAsDate))
-                :disabled (= @flight-type "one-way flight")}]
-       [:button {:on-click #(js/alert (str "You have booked a " @flight-type " on " @start (if (= @flight-type "return flight") (str " returning on " @end ".") ".")))
-                 :disabled (and (= @flight-type "return flight") (> @start @end))} "Book"]])))
-
-(defn timer []
-  (let [tick-freq 10
-        duration (atom 10.0)
-        elapsed (atom 0.0)]
-    (fn []
-      (js/setTimeout #(if (< @elapsed @duration) (swap! elapsed (partial + (/ 1 tick-freq)))) (/ 1000 tick-freq))
-      [:div {:style {:max-width 300}}
-       [:div {:style {:background-color "darkgrey" :height "20px"}} [:div {:style {:height "100%" :width (str (min 100 (int (* (/ @elapsed @duration) 100))) "%") :background-color "blue"}}]]
-       [:p (.toFixed @elapsed 2)]
-       [:div {:style {:display "flex" :flex-direction "row"}} [:p "Duration:"]
-        [:input {:type "range"
-                 :value @duration
-                 :max 20
-                 :on-input #(reset! duration (event-value %))}]]
-       [:button {:style {:width "100%"} :on-click #(reset! elapsed 0)} "Reset"]])))
-
 
 (defn home-page []
   (fn []
@@ -79,7 +22,9 @@
      [box "Counter" [counter]]
      [box "Temperature Converter" [temperature-converter]]
      [box "Flight Scheduler" [flight-scheduler]]
-     [box "Timer" [timer]]]))
+     [box "Timer" [timer]]
+     [box "CRUD" [crud]]]))
+
 ;; -------------------------
 ;; Routes
 
