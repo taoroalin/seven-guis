@@ -3,7 +3,7 @@
                                [clojure.walk :refer [postwalk]]))
 (comment (ns seven-guis.cells (:require [instaparse.core :as insta])))
 
-(defparser parse-to-ast "src/cells.insta")
+(defparser string->ast "src/cells.insta")
 
 (def test-strings ["hello =1" "hello=$B1"])
 
@@ -12,23 +12,23 @@
 (def rows (range 100))
 (defn letter->idx [letter] (- (.charCodeAt letter 0) 65))
 
-(defn parse [string]
-  (let [ast (parse-to-ast string)
-        ast (insta/transform {:number js/parseInt
-                              :op {"+" + "-" - "*" *}
-                              :ref
-                              (fn [col row]
-                                (vector :ref
-                                        (letter->idx (str col))
-                                        (js/parseInt row)))}
-                             ast)
-        smoosh (fn [& args] (into #{} (mapcat #(if (set? %) % #{}) args)))
-        links (insta/transform {:ref (fn [col row] #{[col row]})
-                                :toplevel smoosh
-                                :described smoosh
-                                :operation smoosh}
-                               ast)]
-    [ast links]))
+(def ast->ast
+  (partial insta/transform
+           {:number js/parseInt
+            :op {"+" + "-" - "*" *}
+            :ref
+            (fn [col row]
+              (vector :ref
+                      (letter->idx (str col))
+                      (js/parseInt row)))}))
+
+(defn ast->links [ast]
+  (let [smoosh (fn [& args] (into #{} (mapcat #(if (set? %) % #{}) args)))]
+    (insta/transform {:ref (fn [col row] #{[col row]})
+                      :toplevel smoosh
+                      :described smoosh
+                      :operation smoosh}
+                     ast)))
 
 (defn evaluate [state pos]
   (let [equation (get-in state [:cells pos :equation])
@@ -42,9 +42,11 @@
     (update-in state [:cells pos]
                #(assoc (assoc % :number number) :display display))))
 
+;; This thing is beautiful!!!!!!
+;; should convert to breadth first
 (defn propagate [state pos]
   (let [state (evaluate state pos)]
-    (reduce propagate (get-in state [:cell pos :backlinks]))))
+    (reduce propagate state (get-in state [:cell pos :backlinks]))))
 
 (defn add-backlinks [state target]
   (assoc state :cells
@@ -68,13 +70,18 @@
         set-cell (fn [pos string]
                    (swap! state
                           (fn [state]
-                            (let [[equation links] (parse string)
-                                  state (remove-backlinks state pos)
-                                  state (update-in state [:cells pos] #(merge % {:raw string
-                                                                                 :equation equation
-                                                                                 :links links}))
-                                  state (add-backlinks state pos)
-                                  state (propagate state pos)]
+                            (if-let [ast (string->ast string)]
+                              (let [ast (ast->ast ast)
+                                    links (ast->links ast)
+                                    _ (print ast links)
+                                    state (remove-backlinks state pos)
+                                    _ (print "first " state)
+                                    state (update-in state [:cells pos] #(merge % {:raw string
+                                                                                   :equation ast
+                                                                                   :links links}))
+                                    state (add-backlinks state pos)
+                                    state (propagate state pos)]
+                                state)
                               state))))
 
         cell (fn [value pos]
@@ -84,9 +91,7 @@
                                                              :on-change #(set-cell pos (-> % .-target .-value))}]])]
     (print @state)
     (fn []
-      (print (parse "result is =B1"))
       [:div.cells
-       [:p (str (parse "result =B1+S2"))]
        [:table
         [:thead [:tr (for [letter letters] ^{:key letter} [:th letter])]]
         [:tbody
