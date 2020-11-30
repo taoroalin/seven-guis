@@ -1,7 +1,6 @@
 (ns seven-guis.cells (:require [reagent.core :refer [atom]]
                                [instaparse.core :as insta :refer-macros [defparser]]
                                [clojure.walk :refer [postwalk]]))
-(comment (ns seven-guis.cells (:require [instaparse.core :as insta])))
 
 (defparser string->ast "src/cells.insta")
 
@@ -46,9 +45,10 @@
 
 ;; This thing is beautiful!!!!!!
 ;; should convert to breadth first
+;; improve
 (defn propagate [state pos]
   (let [state (evaluate state pos)]
-    (reduce propagate state (get-in state [:cell pos :backlinks]))))
+    (reduce propagate state (get-in state [:cells pos :backlinks]))))
 
 (defn add-backlinks [state pos]
   (assoc state :cells
@@ -72,32 +72,32 @@
         set-cell (fn [pos string]
                    (swap! state
                           (fn [state]
-                            (if-let [ast (string->ast string)]
-                              (let [ast (ast->ast ast)
-                                    _ (print "ast 1" ast)
-                                    links (ast->links ast)
-                                    _ (print "ast 2" ast)
-                                    _ (print "links" links)
-                                    state (remove-backlinks state pos)
-                                    _ (print "first " state)
-                                    state (update-in state [:cells pos] #(merge % {:raw string
-                                                                                   :equation ast
-                                                                                   :links links}))
-                                    state (add-backlinks state pos)
-                                    state (propagate state pos)]
-                                state)
-                              state))))
+                            (let [ast (string->ast string)]
+                              (if (insta/failure? ast)
+                                state
+                                (let [ast (ast->ast ast)
+                                      links (ast->links ast)
+                                      equation? (seq? (second ast))
+                                      state (remove-backlinks state pos)
+                                      state (update-in state [:cells pos] #(merge % {:raw string
+                                                                                     :equation ast
+                                                                                     :links links
+                                                                                     :equation? equation?}))
+                                      state (add-backlinks state pos)
+                                      state (propagate state pos)]
+                                  state))))))
 
-        cell (fn [value pos]
-               ^{:key (pos 1)} [:td {:on-click #(swap! state assoc :editing pos)} value])
-        editing-cell (fn [pos]
+        cell (fn [cell pos]
+               ^{:key (pos 1)} [:td {:class (when (:equation? cell) "equation") :on-click #(swap! state assoc :editing pos)} (:display cell)])
+        editing-cell (fn [cell pos]
                        ^{:key (pos 1)} [:td#editing [:input {:ref #(set! (.-activeElement js/document) %)
+                                                             :default-value (:raw cell)
                                                              :on-change #(set-cell pos (-> % .-target .-value))}]])]
-    (print "state" @state)
     (fn []
+      (println "state" @state)
       [:div.cells
+       [:p (str (ast->ast (string->ast "1")))]
        [:table
-        [:p (str (ast->ast (string->ast "hello")))]
         [:thead [:tr [:th] (for [letter letters] ^{:key letter} [:th letter])]]
         [:tbody
          (let [{cells :cells editing :editing} @state]
@@ -106,5 +106,9 @@
              [:tr [:td.row-header i]
               (for [j cols]
                 ^{:key j} (if (= editing [i,j])
-                            ^{:key j} [editing-cell [i,j]]
-                            ^{:key j} [cell (get-in cells [[i,j] :display]) [i j]]))]))]]])))
+                            ^{:key j} [editing-cell (cells [i,j]) [i,j]]
+                            ^{:key j} [cell (cells [i,j]) [i j]]))]))]]])))
+
+
+;;{:cells {[1 2] {:raw =1+B1, :equation [:toplevel [:operation 1 #object[cljs$core$_PLUS_] [:ref 1 1]]], :links #{[1 1]}, :equation? false, :number 3, :display 3}
+;;         [:index 4] {:backlinks #{}}, [:column 1] {:backlinks #{}}, [:column 2] {:backlinks #{}}, [:index 0] {:backlinks #{}}, [:text =1+B] {:backlinks #{}}, [:index 1] {:backlinks #{}}, [:text =1+A] {:backlinks #{}}, [:reason [{:tag :regexp, :expecting #"^[0-9]{1,2}"}]] {:backlinks #{}}, [1 1] {:raw =1+A1, :equation [:toplevel [:operation 1 #object[cljs$core$_PLUS_] [:ref 1 0]]], :links #{[1 0]}, :equation? false, :number 2, :display 2, :backlinks #{[1 2]}}, [:column 5] {:backlinks #{}}, [:text =1+] {:backlinks #{}}, [:line 1] {:backlinks #{}}, [:index 3] {:backlinks #{}}, [:text] {:backlinks #{}}, [2 1] {:backlinks #{}}, [1 0] {:number 0, :raw 2, :display 2, :links #{}, :backlinks #{[1 1]}, :equation [:toplevel 2], :equation? true}, [2 0] {:backlinks #{}}, [:reason [{:tag :string, :expecting =} {:tag :regexp, :expecting #"^[^=]+"}]] {:backlinks #{}}, [:text =] {:backlinks #{}}, [:reason [{:tag :regexp, :expecting #"^[A-Z]"} {:tag :regexp, :expecting #"^\d+"}]] {:backlinks #{}}, [:text =+] {:backlinks #{}}, [:column 4] {:backlinks #{}}}, :editing [1 0]}
