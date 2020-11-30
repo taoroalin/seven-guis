@@ -58,14 +58,23 @@
 ;; sub components
 
 (defn radius-picker [state id]
-  [:input {:type "range"
-           :auto-focus true
-           :default-value 1
-           :on-blur (fn [event]
-                      (swap! state #(-> %
-                                        (assoc :radius-picker nil)
-                                        (update-diameter id (-> event .-target .-value)))))
-           :style {:display "block" :postion "absolute" :top "30%" :text-align "center"}}])
+  [:div {:style {:display "block"
+                 :position "absolute"
+                 :top "40%"
+                 :left "50%"
+                 :text-align "center"
+                 :transform "translateX(-50%)"
+                 :background-color "white"
+                 :padding "20px"}}
+   [:input {:type "range"
+            :auto-focus true
+            :default-value (get-in (current-time @state) [id :d])
+            :min 5
+            :max 200
+            :on-blur (fn [event]
+                       (swap! state #(-> %
+                                         (assoc :radius-picker nil)
+                                         (update-diameter id (-> event .-target .-value)))))}]])
 
 (defn circle
   "render circle"
@@ -100,7 +109,6 @@
     (fn []
       (println @state)
       [:div {:style {:position "relative"}}
-       (if-let [id (:radius-picker @state)] [radius-picker state id])
        [:div
         [:button {:on-click #(swap! state undo)} "Undo"]
         [:button {:on-click #(swap! state redo)} "Redo"]]
@@ -111,4 +119,5 @@
               :ref #(reset! !canvas %)
               :on-click #(swap! state add-circle (create-circle % @!canvas))}
         (map-indexed (fn [i v] ^{:key i} [circle state i v])
-                     (current-time @state))]])))
+                     (current-time @state))
+        (if-let [id (:radius-picker @state)] [radius-picker state id])]])))

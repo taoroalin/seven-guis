@@ -28,6 +28,7 @@
 }
 .cells #editing{
   position:relative;
+  min-width: 80px;
 }
 .cells input{
   position:absolute;

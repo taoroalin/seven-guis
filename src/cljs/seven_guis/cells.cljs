@@ -8,7 +8,7 @@
 (def test-strings ["hello =1" "hello=$B1"])
 
 ;; generate parser from EBNF at compile time
-(defparser string->ast "src/cells.insta")
+(defparser string->ast "src/cells.insta" :auto-whitespace :standard)
 
 
 (defn letter->idx [letter] (- (.charCodeAt letter 0) 65))
