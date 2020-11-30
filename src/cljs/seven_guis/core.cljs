@@ -11,7 +11,8 @@
    [seven-guis.flight :refer [flight-scheduler]]
    [seven-guis.timer :refer [timer]]
    [seven-guis.crud :refer [crud]]
-   [seven-guis.circles :refer [circles]]))
+   [seven-guis.circles :refer [circles]]
+   [seven-guis.cells :refer [cells]]))
 
 (defn box [name contents]
   [:div {:style {:border "1px solid black" :border-radius "4px" :padding "10px"}} [:h3 name] contents])
@@ -25,7 +26,8 @@
      [box "Flight Scheduler" [flight-scheduler]]
      [box "Timer" [timer]]
      [box "CRUD" [crud]]
-     [box "Circles" [circles]]]))
+     [box "Circles" [circles]]
+     [box "Cells" [cells]]]))
 
 ;; -------------------------
 ;; Routes

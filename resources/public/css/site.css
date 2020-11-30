@@ -9,6 +9,36 @@
   line-height: 1.5em;
 }
 
+.cells{
+  max-height: 600px;
+  overflow:auto;
+}
+.cells table{
+  border-collapse:collapse;
+}
+.cells td{
+  padding:0;
+  margin:0;
+  min-width: 40px;
+  border: 1px solid grey;
+}
+.cells td.row-header{
+  border:none;
+  min-width: 30px;
+}
+.cells .editing{
+  position:relative;
+}
+.cells input{
+  position:absolute;
+  top:0;
+  padding:0;
+  margin:0;
+  border-radius:0;
+  height:100%;
+  width:100%;
+}
+
 button {
   font-size: 16px;
   appearance: none;
