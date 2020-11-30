@@ -1,0 +1,8 @@
+<toplevel> = text | described | <'='> expression
+described = text <'='> expression
+text = #"[^=]+"
+<expression> = number | operation | ref
+operation = expression op expression
+number = #"\d+"
+ref = #"[A-Z]" #"[0-9]{1,2}"
+op = #"[\+\-\*]" 
