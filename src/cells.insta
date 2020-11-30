@@ -7,4 +7,4 @@ described = text <'='> expression
 naked-operation = expression op expression
 number = #"\d+"
 ref = #"[A-Za-z]" #"[0-9]{1,2}"
-op = #"[\+\-\*]" 
+op = #"[\+\-\*\/]" 

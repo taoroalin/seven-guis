@@ -18,7 +18,7 @@
   [ast]
   (insta/transform
    {:number js/parseInt
-    :op {"+" + "-" - "*" *}
+    :op {"+" + "-" - "*" * "/" /}
     :ref
     (fn [letter number]
       (vector :ref
@@ -88,8 +88,10 @@
                (update-in state [:cells pos]
                           #(merge % {:raw string
                                      :display string
-                                     :syntax-error? true}))
+                                     :syntax-error? (if (= (count string) 0)
+                                                      false true)}))
                (let [ast (clean-ast ast)
+                     _ (println ast)
                      links (ast->links ast)
                      equation? (coll? (second ast))
                      state (remove-backlinks state pos)
