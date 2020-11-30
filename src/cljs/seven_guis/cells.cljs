@@ -33,7 +33,7 @@
     (insta/transform {:ref (fn [col row] #{[col row]})
                       :toplevel smoosh
                       :described smoosh
-                      :operation smoosh}
+                      :naked-operation smoosh}
                      ast)))
 
 (defn evaluate [state pos]
@@ -41,7 +41,7 @@
         get-number (fn [i j] (get-in state [:cells [i j] :number] 0))
         described (insta/transform
                    {:ref get-number
-                    :operation (fn [a op b] (op a b))} equation)
+                    :naked-operation (fn [a op b] (op a b))} equation)
         number (let [result (second (insta/transform {:discribed second} described))]
                  (if (number? result) result 0)) ;; improve
         display (second (insta/transform {:discribed (fn [text number] (str text "=" number))}
@@ -135,7 +135,7 @@
       [:div.cells
        [:p "Type an equation into the grid." [:br]
         "Here's an example: " [:code "result = A1+A2+1"]]
-       [:p "click on cells. didn't write keyboard nav yet"]
+       [:p "Navigate with Tab, Shift+Tab, Enter, and UpArrow"]
        [:table
         [:thead [:tr [:th] (for [letter letters] ^{:key letter} [:th letter])]]
         [:tbody

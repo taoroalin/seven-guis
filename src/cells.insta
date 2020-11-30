@@ -2,7 +2,9 @@ toplevel = number / (text | described | <'='> expression)
 described = text <'='> expression
 <text> = #"[^=]+"
 <expression> = number | operation | ref
-operation = expression op expression
+<operation> = naked-operation | wrapped-operation
+<wrapped-operation> = <"("> operation <")">
+naked-operation = expression op expression
 number = #"\d+"
 ref = #"[A-Z]" #"[0-9]{1,2}"
 op = #"[\+\-\*]" 
