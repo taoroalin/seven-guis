@@ -2,9 +2,9 @@
                                [instaparse.core :as insta :refer-macros [defparser]]
                                [clojure.walk :refer [postwalk]]))
 ;; Constants
-(def cols (range 26))
-(def rows (range 100))
-(def letters (map (comp char #(+ 97 %)) cols))
+(def cols 26)
+(def rows 100)
+(def letters (map (comp char #(+ 97 %)) (range cols)))
 (def test-strings ["hello =1" "hello=$B1"])
 
 ;; generate parser from EBNF at compile time
@@ -99,6 +99,20 @@
                      state (propagate state pos #{})]
                  state))))))
 
+(defn handle-key [state-atom pos event]
+  (let [key (.-key event)
+        shift (.-shiftKey event)
+        move-direction (case key
+                         ("Tab") (if shift [0 -1] [0 1])
+                         ("ArrowDown" "Enter") [1 0]
+                         ("ArrowUp") [-1 0]
+                         [0 0])
+        constrain #(max 0 (min %2 %1))
+        constrain-pos (fn [[i j]] [(constrain i rows) (constrain j cols)])
+        new-editing (constrain-pos (mapv + pos move-direction))]
+    (when (not= new-editing pos)
+      (swap! state-atom assoc :editing new-editing))))
+
 (defn cells
   "it's a spreadsheet. it's virtue is it's less code than real spreadsheets"
   []
@@ -115,7 +129,7 @@
                     [:input {:auto-focus true
                              :default-value (:raw cell)
                              :on-change #(set-cell state pos (-> % .-target .-value))
-                             :on-key-down #(swap! state assoc :editing pos)}]])]
+                             :on-key-down #(handle-key state pos %)}]])]
     (fn []
       ;;(println "state" @state)
       [:div.cells
@@ -126,10 +140,10 @@
         [:thead [:tr [:th] (for [letter letters] ^{:key letter} [:th letter])]]
         [:tbody
          (let [{cells :cells editing :editing} @state]
-           (for [i rows]
+           (for [i (range rows)]
              ^{:key i}
              [:tr [:td.row-header i]
-              (for [j cols]
+              (for [j (range cols)]
                 ^{:key j} (if (= editing [i,j])
                             ^{:key j} [editing-cell (cells [i,j]) [i,j]]
                             ^{:key j} [cell (cells [i,j]) [i j]]))]))]]])))
