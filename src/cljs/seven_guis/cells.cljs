@@ -17,10 +17,10 @@
    {:number js/parseInt
     :op {"+" + "-" - "*" *}
     :ref
-    (fn [col row]
+    (fn [letter number]
       (vector :ref
-              (letter->idx (str col))
-              (js/parseInt row)))}
+              (js/parseInt number)
+              (letter->idx (str letter))))}
    ast))
 
 (defn ast->links [ast]
@@ -38,7 +38,7 @@
                    {:ref get-number
                     :operation (fn [a op b] (op a b))} equation)
         number (let [result (second (insta/transform {:discribed second} described))]
-                 (if (number? result) result 0))
+                 (if (number? result) result 0)) ;; improve
         display (second (insta/transform {:discribed (fn [text number] (str text "=" number))}
                                          described))]
     (update-in state [:cells pos]
@@ -98,7 +98,7 @@
       [:div.cells
        [:table
         [:p (str (ast->ast (string->ast "hello")))]
-        [:thead [:tr (for [letter letters] ^{:key letter} [:th letter])]]
+        [:thead [:tr [:th] (for [letter letters] ^{:key letter} [:th letter])]]
         [:tbody
          (let [{cells :cells editing :editing} @state]
            (for [i rows]
@@ -107,4 +107,4 @@
               (for [j cols]
                 ^{:key j} (if (= editing [i,j])
                             ^{:key j} [editing-cell [i,j]]
-                            ^{:key j} [cell (get-in cells [[i j] :display]) [i j]]))]))]]])))
+                            ^{:key j} [cell (get-in cells [[i,j] :display]) [i j]]))]))]]])))
