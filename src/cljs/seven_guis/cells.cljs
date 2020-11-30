@@ -14,7 +14,9 @@
 
 (defn parse [string]
   (let [ast (parse-to-ast string)
-        ast (insta/transform {:ref
+        ast (insta/transform {:number js/parseInt
+                              :op {"+" + "-" - "*" *}
+                              :ref
                               (fn [col row]
                                 (vector :ref
                                         (letter->idx (str col))
@@ -28,9 +30,21 @@
                                ast)]
     [ast links]))
 
-(defn compute-value [state pos] state)
+(defn evaluate [state pos]
+  (let [equation (get-in state [:cells pos :equation])
+        get-number (fn [i j] (get-in state [:cells [i j] :number] 0))
+        described (insta/transform
+                   {:ref get-number
+                    :operation (fn [a op b] (op a b))} equation)
+        number (insta/transform {:discribed second} described)
+        display (insta/transform {:discribed (fn [text number] (str text "=" number))}
+                                 described)]
+    (update-in state [:cells pos]
+               #(assoc (assoc % :number number) :display display))))
 
-(defn propagate [state pos] state)
+(defn propagate [state pos]
+  (let [state (evaluate state pos)]
+    (reduce propagate (get-in state [:cell pos :backlinks]))))
 
 (defn add-backlinks [state target]
   (assoc state :cells
@@ -55,8 +69,6 @@
                    (swap! state
                           (fn [state]
                             (let [[equation links] (parse string)
-                                  links []
-                                  equation nil
                                   state (remove-backlinks state pos)
                                   state (update-in state [:cells pos] #(merge % {:raw string
                                                                                  :equation equation

@@ -1,6 +1,6 @@
 <toplevel> = text | described | <'='> expression
 described = text <'='> expression
-text = #"[^=]+"
+<text> = #"[^=]+"
 <expression> = number | operation | ref
 operation = expression op expression
 number = #"\d+"
