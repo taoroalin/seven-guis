@@ -1,4 +1,4 @@
-<toplevel> = text | described | <'='> expression
+toplevel = text | described | <'='> expression
 described = text <'='> expression
 <text> = #"[^=]+"
 <expression> = number | operation | ref

@@ -12,15 +12,16 @@
 (def rows (range 100))
 (defn letter->idx [letter] (- (.charCodeAt letter 0) 65))
 
-(def ast->ast
-  (partial insta/transform
-           {:number js/parseInt
-            :op {"+" + "-" - "*" *}
-            :ref
-            (fn [col row]
-              (vector :ref
-                      (letter->idx (str col))
-                      (js/parseInt row)))}))
+(defn ast->ast [ast]
+  (insta/transform
+   {:number js/parseInt
+    :op {"+" + "-" - "*" *}
+    :ref
+    (fn [col row]
+      (vector :ref
+              (letter->idx (str col))
+              (js/parseInt row)))}
+   ast))
 
 (defn ast->links [ast]
   (let [smoosh (fn [& args] (into #{} (mapcat #(if (set? %) % #{}) args)))]
@@ -36,9 +37,10 @@
         described (insta/transform
                    {:ref get-number
                     :operation (fn [a op b] (op a b))} equation)
-        number (insta/transform {:discribed second} described)
-        display (insta/transform {:discribed (fn [text number] (str text "=" number))}
-                                 described)]
+        number (let [result (second (insta/transform {:discribed second} described))]
+                 (if (number? result) result 0))
+        display (second (insta/transform {:discribed (fn [text number] (str text "=" number))}
+                                         described))]
     (update-in state [:cells pos]
                #(assoc (assoc % :number number) :display display))))
 
@@ -48,13 +50,13 @@
   (let [state (evaluate state pos)]
     (reduce propagate state (get-in state [:cell pos :backlinks]))))
 
-(defn add-backlinks [state target]
+(defn add-backlinks [state pos]
   (assoc state :cells
          (reduce (fn [cells link]
                    (assoc-in cells [link :backlinks]
-                             (conj (or (get-in cells [link :backlinks]) #{}) target)))
+                             (conj (or (get-in cells [link :backlinks]) #{}) pos)))
                  (:cells state)
-                 (:links (:cells state)))))
+                 (get-in state [:cells pos :links]))))
 
 (defn remove-backlinks [state pos]
   (assoc state :cells
@@ -72,8 +74,10 @@
                           (fn [state]
                             (if-let [ast (string->ast string)]
                               (let [ast (ast->ast ast)
+                                    _ (print "ast 1" ast)
                                     links (ast->links ast)
-                                    _ (print ast links)
+                                    _ (print "ast 2" ast)
+                                    _ (print "links" links)
                                     state (remove-backlinks state pos)
                                     _ (print "first " state)
                                     state (update-in state [:cells pos] #(merge % {:raw string
@@ -89,10 +93,11 @@
         editing-cell (fn [pos]
                        ^{:key (pos 1)} [:td#editing [:input {:ref #(set! (.-activeElement js/document) %)
                                                              :on-change #(set-cell pos (-> % .-target .-value))}]])]
-    (print @state)
+    (print "state" @state)
     (fn []
       [:div.cells
        [:table
+        [:p (str (ast->ast (string->ast "hello")))]
         [:thead [:tr (for [letter letters] ^{:key letter} [:th letter])]]
         [:tbody
          (let [{cells :cells editing :editing} @state]
