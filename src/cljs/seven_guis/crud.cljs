@@ -22,7 +22,7 @@
     (fn []
       [:div
        [:div {:style {:display "flex" :flex-direction "row"}}
-        [:div [basic-text-input "Filter String:" state [:filter]]
+        [:div [basic-text-input "Filter Last Name:" state [:filter]]
          (let [{filter-string :filter
                 people :people
                 selected-person :selected-person} @state]

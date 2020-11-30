@@ -43,6 +43,10 @@
   border: 2px solid black;
 }
 
+.cells .syntax-error{
+  border: 2px solid red;
+}
+
 
 button {
   font-size: 16px;

@@ -1,4 +1,7 @@
-(ns seven-guis.circles (:require [reagent.core :refer [atom]]))
+(ns seven-guis.circles
+  "The way I dealt with rewinding and non-rewinding parts of the state
+   is to keep rewinding parts in a stack of arrays of balls, and keep
+   static parts in a flat array that reference. " (:require [reagent.core :refer [atom]]))
 
 (def default-radius 50)
 (def max-circles 100)
@@ -58,23 +61,29 @@
 ;; sub components
 
 (defn radius-picker [state id]
-  [:div {:style {:display "block"
-                 :position "absolute"
-                 :top "40%"
-                 :left "50%"
-                 :text-align "center"
-                 :transform "translateX(-50%)"
-                 :background-color "white"
-                 :padding "20px"}}
-   [:input {:type "range"
-            :auto-focus true
-            :default-value (get-in (current-time @state) [id :d])
-            :min 5
-            :max 200
-            :on-blur (fn [event]
-                       (swap! state #(-> %
-                                         (assoc :radius-picker nil)
-                                         (update-diameter id (-> event .-target .-value)))))}]])
+  (let [handle-exit (fn [event]
+                      (.stopPropagation event)
+                      (swap! state #(-> %
+                                        (assoc :radius-picker nil)
+                                        (update-diameter id (-> event .-target .-value)))))]
+    [:div {:style {:display "block"
+                   :position "absolute"
+                   :top "40%"
+                   :left "50%"
+                   :text-align "center"
+                   :transform "translateX(-50%)"
+                   :background-color "white"
+
+                   :box-shadow "0 0 2px 2px black"}}
+     [:h4 {:style {:margin "25px"}} "Diameter of circle"]
+     [:input {:type "range"
+              :auto-focus true
+              :default-value (get-in (current-time @state) [id :d])
+              :min 5
+              :max 200
+              :style {:padding "20px 0 30px" :outline "none"}
+              :on-blur handle-exit}]
+     [:span {:style {:position "absolute" :top 0 :right 0 :cursor "pointer"} :on-click handle-exit} "Close"]]))
 
 (defn circle
   "render circle"

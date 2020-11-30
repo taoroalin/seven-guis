@@ -6,5 +6,5 @@ described = text <'='> expression
 <wrapped-operation> = <"("> operation <")">
 naked-operation = expression op expression
 number = #"\d+"
-ref = #"[A-Z]" #"[0-9]{1,2}"
+ref = #"[A-Za-z]" #"[0-9]{1,2}"
 op = #"[\+\-\*]" 

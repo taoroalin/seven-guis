@@ -10,8 +10,8 @@
 ;; generate parser from EBNF at compile time
 (defparser string->ast "src/cells.insta" :auto-whitespace :standard)
 
+(defn letter->idx [letter] (- (.charCodeAt letter 0) (if (= (.toUpperCase letter) letter) 65 97)))
 
-(defn letter->idx [letter] (- (.charCodeAt letter 0) 65))
 
 (defn clean-ast
   "convert numbers and operations to their own types, and convert letter cols to numbers"
@@ -84,14 +84,18 @@
   (swap! state
          (fn [state]
            (let [ast (string->ast string)]
-             (if (insta/failure? ast) ;; don't update if input doesn't parse
-               state
+             (if (insta/failure? ast)
+               (update-in state [:cells pos]
+                          #(merge % {:raw string
+                                     :display string
+                                     :syntax-error? true}))
                (let [ast (clean-ast ast)
                      links (ast->links ast)
                      equation? (coll? (second ast))
                      state (remove-backlinks state pos)
                      state (update-in state [:cells pos]
                                       #(merge % {:raw string
+                                                 :syntax-error? false
                                                  :equation ast
                                                  :links links
                                                  :equation? equation?}))
@@ -120,7 +124,7 @@
    [state (atom {:cells {[1 0] {:number 1 :raw "1" :display "1" :links #{} :backlinks #{}}}
                  :editing [0 0]})
     cell (fn [cell pos]
-           ^{:key (pos 1)} [:td {:class (when (:equation? cell) "equation")
+           ^{:key (pos 1)} [:td {:class [(when (:syntax-error? cell) "syntax-error") (when (:equation? cell) "equation")]
                                  :on-click #(swap! state assoc :editing pos)}
                             (:display cell)])
     editing-cell (fn [cell pos]
@@ -134,6 +138,7 @@
       ;;(println "state" @state)
       [:div.cells
        [:p "Type an equation into the grid." [:br]
+        "it supports arithmetic, will support ranges soon" [:br]
         "Here's an example: " [:code "result = A1+A2+1"]]
        [:p "Navigate with Tab, Shift+Tab, Enter, and UpArrow"]
        [:table
