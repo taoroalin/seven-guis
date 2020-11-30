@@ -5,5 +5,4 @@
     (fn []
       [:div
        "The button has been clicked "  @click-count " times."
-       [:input {:type "button" :value "Click me!"
-                :on-click #(swap! click-count inc)}]])))
+       [:button {:on-click #(swap! click-count inc)} "Click me!"]])))

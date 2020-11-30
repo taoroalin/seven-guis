@@ -17,5 +17,7 @@
                 :valueAsDate @end
                 :on-change #(reset! end (-> % .-target .-valueAsDate))
                 :disabled (= @flight-type "one-way flight")}]
-       [:button {:on-click #(js/alert (str "You have booked a " @flight-type " on " @start (if (= @flight-type "return flight") (str " returning on " @end ".") ".")))
-                 :disabled (and (= @flight-type "return flight") (> @start @end))} "Book"]])))
+       [:button {:on-click #(js/alert (str "You have booked a " @flight-type " on " @start
+                                           (if (= @flight-type "return flight") (str " returning on " @end ".") ".")))
+                 :disabled (or (or (nil? @start) (and (nil? @end) (= @flight-type "return flight")))
+                               (and (= @flight-type "return flight") (> @start @end)))} "Book"]])))
