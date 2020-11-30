@@ -15,3 +15,28 @@
 ;      when the cursor is after the last contents at the prompt
 ;   - Clojure lines in stack traces are peekable and clickable.
 clj::user=>
+; Evaluating file: circles.cljs
+; Evaluating file: circles.cljs
+; Evaluating file: circles.cljs
+; Evaluating file: circles.cljs
+; Evaluating file: circles.cljs
+; Evaluating file: circles.cljs
+; Evaluating file: circles.cljs
+; Evaluating file: circles.cljs
+; Evaluating file: circles.cljs
+; Evaluating file: circles.cljs
+; Evaluating file: circles.cljs
+; Evaluating file: circles.cljs
+; Evaluating file: circles.cljs
+; Evaluating file: circles.cljs
+; Evaluating file: circles.cljs
+; Evaluating file: circles.cljs
+; Evaluating file: circles.cljs
+; Evaluating file: circles.cljs
+; Evaluating file: circles.cljs
+; Evaluating file: circles.cljs
+; Evaluating file: circles.cljs
+; Evaluating file: circles.cljs
+; Evaluating file: circles.cljs
+; Evaluating file: circles.cljs
+; Evaluating file: circles.cljs
