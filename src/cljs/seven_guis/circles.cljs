@@ -2,6 +2,9 @@
 
 (def default-radius 50)
 
+(defn radius-picker []
+  [:input {:type "range" :on-input #()}])
+
 (defn circle [update id {x :x y :y d :d filled? :filled?}]
   (let [r (/ d 2)
         top (- y r)
@@ -32,11 +35,10 @@
 
 
 (defn circles []
-  (let [state (atom {:history (list [{:x 100 :y 100 :d 100 :filled? true}])
+  (let [state (atom {:history (list [{:x 100 :y 100 :d 100 :filled? false}])
                      :undos 0})
         !canvas (atom nil)]
     (fn []
-      (print state)
       [:div [:div
              [:button {:on-click #(swap! state (fn [state]
                                                  (assoc state :undos (min (- (count (:history state)) 1)
@@ -51,8 +53,7 @@
               :on-click (fn [event]
                           (let [circle (create-circle event @!canvas)]
                             (swap! state (fn [state]
-                                           (let [state (drop-redos state)
-                                                 none (print state)]
+                                           (let [state (drop-redos state)]
                                              (assoc state :history
                                                     (cons (conj (first (:history state)) circle)
                                                           (:history state))))))))}
@@ -60,6 +61,7 @@
                               (fn [event id]
                                 (.stopPropagation event)
                                 (swap! state #(let [state (drop-redos %)]
-                                                (assoc state :history (cons (assoc-in (first (:history state)) [id :filled?] true) (:history state)))))))
+                                                (assoc state :history (cons (assoc-in (first (:history state)) [id :filled?] true)
+                                                                            (rest (:history state))))))))
                      (let [{history :history undos :undos} @state]
                        (nth history undos)))]])))
