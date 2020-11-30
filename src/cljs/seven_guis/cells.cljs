@@ -117,10 +117,11 @@
                              :on-change #(set-cell state pos (-> % .-target .-value))
                              :on-key-down #(swap! state assoc :editing pos)}]])]
     (fn []
-      (println "state" @state)
+      ;;(println "state" @state)
       [:div.cells
        [:p "Type an equation into the grid." [:br]
         "Here's an example: " [:code "result = A1+A2+1"]]
+       [:p "click on cells. didn't write keyboard nav yet"]
        [:table
         [:thead [:tr [:th] (for [letter letters] ^{:key letter} [:th letter])]]
         [:tbody
@@ -132,7 +133,3 @@
                 ^{:key j} (if (= editing [i,j])
                             ^{:key j} [editing-cell (cells [i,j]) [i,j]]
                             ^{:key j} [cell (cells [i,j]) [i j]]))]))]]])))
-
-
-;;{:cells {[1 2] {:raw =1+B1, :equation [:toplevel [:operation 1 #object[cljs$core$_PLUS_] [:ref 1 1]]], :links #{[1 1]}, :equation? false, :number 3, :display 3}
-;;         [:index 4] {:backlinks #{}}, [:column 1] {:backlinks #{}}, [:column 2] {:backlinks #{}}, [:index 0] {:backlinks #{}}, [:text =1+B] {:backlinks #{}}, [:index 1] {:backlinks #{}}, [:text =1+A] {:backlinks #{}}, [:reason [{:tag :regexp, :expecting #"^[0-9]{1,2}"}]] {:backlinks #{}}, [1 1] {:raw =1+A1, :equation [:toplevel [:operation 1 #object[cljs$core$_PLUS_] [:ref 1 0]]], :links #{[1 0]}, :equation? false, :number 2, :display 2, :backlinks #{[1 2]}}, [:column 5] {:backlinks #{}}, [:text =1+] {:backlinks #{}}, [:line 1] {:backlinks #{}}, [:index 3] {:backlinks #{}}, [:text] {:backlinks #{}}, [2 1] {:backlinks #{}}, [1 0] {:number 0, :raw 2, :display 2, :links #{}, :backlinks #{[1 1]}, :equation [:toplevel 2], :equation? true}, [2 0] {:backlinks #{}}, [:reason [{:tag :string, :expecting =} {:tag :regexp, :expecting #"^[^=]+"}]] {:backlinks #{}}, [:text =] {:backlinks #{}}, [:reason [{:tag :regexp, :expecting #"^[A-Z]"} {:tag :regexp, :expecting #"^\d+"}]] {:backlinks #{}}, [:text =+] {:backlinks #{}}, [:column 4] {:backlinks #{}}}, :editing [1 0]}
