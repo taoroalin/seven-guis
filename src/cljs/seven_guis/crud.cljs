@@ -30,7 +30,7 @@
                  :when (= (subs (:last person) 0 (count filter-string))
                           filter-string)]
              ^{:key person}
-             [:div {:style {:cursor "pointer" :background-color (if (= selected-person person) "blue")}
+             [:div {:style {:cursor "pointer" :background-color (when (= selected-person person) "blue")}
                     :on-click #(swap! state assoc :selected-person person)}
               (:first person) ", " (:last person)]))]
         [:div

@@ -5,7 +5,7 @@
         duration (atom 0.0)
         elapsed (atom 0.0)]
     (fn []
-      (js/setTimeout #(if (< @elapsed @duration) (swap! elapsed (partial + (/ 1 tick-freq)))) (/ 1000 tick-freq))
+      (js/setTimeout #(when (< @elapsed @duration) (swap! elapsed (partial + (/ 1 tick-freq)))) (/ 1000 tick-freq))
       [:div {:style {:max-width 300}}
        [:div {:style {:background-color "darkgrey" :height "20px"}} [:div {:style {:height "100%" :width (str (min 100 (int (* (/ @elapsed @duration) 100))) "%") :background-color "blue"}}]]
        [:p (.toFixed @elapsed 2)]
