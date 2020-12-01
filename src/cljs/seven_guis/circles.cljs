@@ -115,7 +115,7 @@
                      :undos 0
                      :radius-picker nil
                      :eternal (vec (repeat max-circles default-eternal))})
-        !canvas (atom nil)]
+        !canvas (clojure.core/atom nil)]
     (fn []
       [:div {:style {:position "relative"}}
        [:div

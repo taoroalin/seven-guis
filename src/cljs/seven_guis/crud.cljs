@@ -1,6 +1,13 @@
 (ns seven-guis.crud
+  "Strategy:
+   1: only render elements on screen
+   2: filter with trie
+   filtering 100k takes 600ms
+   "
   (:require [reagent.core :refer [atom]]
             [seven-guis.common :refer [basic-text-input atom-text-input]]))
+
+(def li-height 26.4)
 
 (defn random-person []
   (let [random-name #(str (rand-int 100000))
@@ -46,27 +53,42 @@
 
 
 (defn crud []
-  (let [state (atom {:trie {"7" {"4" {"2" {"3" {:first #{"52654"}}}}}
-                            "6" {"2" {"7" {"7" {"9" {:first #{"47140"}}}}}}
-                            "1" {"1" {"4" {"0" {"9" {:first #{"50681"}}}}}}
-                            "3"
-                            {"1" {"6" {"8" {"5" {:first #{"98525"}}}}}
-                             "3" {"5" {"4" {"4" {:first #{"71572"}}}}}}}
+  (let [state (atom {:filtered-people []
+                     :trie {}
                      :filter ""
                      :first ""
                      :last ""
-                     :selected-person nil})]
+                     :selected-person nil})
+        update-forcer (atom 0)
+        !box (clojure.core/atom nil)]
     (fn []
+      ;; using extra atom to force rerender on scroll
+      ;; should be better way
+      @update-forcer
       [:div
        [:div {:style {:display "flex" :flex-direction "row"}}
         [:div
-         [atom-text-input "Filter Last Name:" state [:filter]]
-
-         [:div {:style {:max-height "500px" :overflow "auto" :border "1px solid black"}}
-          (let [{filter-string :filter
-                 trie :trie
-                 selected-person :selected-person} @state]
-            (time (list-people (subtrie trie filter-string))))]]
+         [basic-text-input
+          "Filter Last Name:"
+          (:filter @state)
+          #(swap! state (fn [state] (merge state {:filtered-people (vec (list-people (subtrie (:trie state) %)))
+                                                  :filter %})))]
+         [:div {:style {:max-height "500px" :overflow "auto" :border "1px solid black"}
+                :ref #(when (not= @!box %) (reset! !box %))
+                :on-scroll #(swap! update-forcer inc)}
+          (let [{filtered-people :filtered-people
+                 selected-person :selected-person} @state
+                total-height (* li-height (count filtered-people))
+                show-height (min (* li-height (count filtered-people)) (if @!box (.-offsetHeight @!box) 500))
+                number-shown (min (count filtered-people) (int (/ show-height li-height)))
+                max-scroll (- total-height show-height)
+                scroll (if @!box (min max-scroll (.-scrollTop @!box)) 0)
+                bottom (- total-height (+ scroll show-height))
+                first-person (min (- (count filtered-people) number-shown) (int (/ scroll li-height)))
+                last-person (min (count filtered-people) (+ first-person number-shown))]
+            (list ^{:key 0} [:div {:style {:height (str scroll "px")}}]
+                  ^{:key 1} (seq (subvec filtered-people first-person last-person))
+                  ^{:key 2} [:div {:style {:height (str bottom "px")}}]))]]
         [:div
          [atom-text-input "First Name:" state [:first]]
          [atom-text-input "Last Name:" state [:last]]]]
@@ -76,4 +98,4 @@
          "Create"]
         [:button {:on-click #(swap! state (comp add-person remove-person))} "Update"]
         [:button {:on-click #(swap! state remove-person)} "Delete"]
-        [:button {:on-click #(swap! state assoc :trie (init-trie (repeatedly 10000 random-person)))} "Load Test"]]])))
+        [:button {:on-click #(swap! state assoc :trie (time (init-trie (repeatedly 100000 random-person))))} "Load Test"]]])))
