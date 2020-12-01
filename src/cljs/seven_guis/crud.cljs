@@ -12,28 +12,6 @@
     (str (random-name) sep (random-name))))
 
 
-(defn render-person [state stored-name]
-  (let [rendered-name (clojure.string/replace stored-name sep ",")]
-    ^{:key stored-name}
-    [:li {:on-click #(swap! state assoc :selected stored-name)}
-     rendered-name]))
-
-(defn add-person [{people :people first :first last :last :as state}]
-  (let [person (str last sep first)]
-    (-> state
-        (assoc :filter "")
-        (assoc :last "")
-        (assoc :people (conj people person))
-        (assoc :selected person))))
-
-(defn remove-person [{selected :selected people :people :as state}]
-  (merge state {:selected nil :people (disj people selected)}))
-
-(defn replace-person [state]
-  (-> state
-      (remove-person)
-      (add-person)))
-
 (defn filter-people [{filter :filter people :people :as state}]
   (let [filter-gen
         (if (= filter "") (seq people)
@@ -52,8 +30,33 @@
 (defn index [state]
   (scroll-load (filter-people state) 0))
 
+(defn add-person [{people :people first :first last :last :as state}]
+  (let [person (str last sep first)]
+    (-> state
+        (assoc :filter "")
+        (assoc :last "")
+        (assoc :people (conj people person))
+        (assoc :selected person)
+        (index))))
+
+(defn remove-person [{selected :selected people :people :as state}]
+  (index (merge state {:selected nil :people (disj people selected)})))
+
+(defn replace-person [state]
+  (-> state
+      (remove-person)
+      (add-person)))
+
+(defn render-person [state stored-name]
+  (let [rendered-name (clojure.string/replace stored-name sep ",")]
+    ^{:key stored-name}
+    [:li {:on-click #(swap! state assoc :selected stored-name)
+          :style {:background-color (when (= stored-name (:selected @state)) "blue")
+                  :cursor "pointer"}}
+     rendered-name]))
+
 (defn crud []
-  (let [state (atom {:people (sorted-set "Lin`Tao")
+  (let [state (atom {:people (sorted-set)
                      :filtered-generator ()
                      :filtered-vector []
                      :scroll 0
