@@ -8,16 +8,19 @@
 (def buffer "number of extra names to render" 40)
 
 (defn random-person []
-  (let [random-name #(str (rand-int 100000))]
+  (let [random-name #(str (rand-int 1000000))]
     (str (random-name) sep (random-name))))
+
+(def test-names (repeatedly
+                 100000
+                 random-person))
 
 
 (defn filter-people [{filter :filter people :people :as state}]
   (let [filter-gen
         (if (= filter "") (seq people)
             (let [last-idx (- (count filter) 1)
-                  after-filter (str (subs filter 0 last-idx) (char (+ (.charCodeAt filter last-idx) 1)))
-                  _ (println "filter after" after-filter)]
+                  after-filter (str (subs filter 0 last-idx) (char (+ (.charCodeAt filter last-idx) 1)))]
               (rsubseq people >= filter < after-filter)))]
     (merge state {:filtered-generator filter-gen :filtered-vector []})))
 
@@ -76,7 +79,7 @@
           (fn [text] (swap! state (comp index #(assoc % :filter text))))]
          [:div {:style {:max-height "500px" :overflow "auto" :border "1px solid black"}
                 :on-scroll #(swap! state scroll-load (-> % .-target .-scrollTop))}
-          (map (partial render-person state) (:filtered-vector @state))]
+          (doall (map (partial render-person state) (:filtered-vector @state)))]
          [:p "Scroll down to load more"]]
         [:div
          [atom-text-input "First Name:" state [:first]]
@@ -86,5 +89,6 @@
          {:on-click #(swap! state add-person)} "Create"]
         [:button {:on-click #(swap! state replace-person)} "Update"]
         [:button {:on-click #(swap! state remove-person)} "Delete"]
-        [:button {:on-click #(swap! state (comp index (fn [state] (update state :people
-                                                                          (fn [people] (time (into people (repeatedly 10000 random-person))))))))} "Load Test"]]])))
+        [:button {:on-click #(swap! state (comp index (fn [state]
+                                                        (assoc state :people
+                                                               (into (:people state) test-names)))))} "Load 100,000 names"]]])))
