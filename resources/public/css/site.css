@@ -9,6 +9,10 @@
   line-height: 1.5em;
 }
 
+li{
+  list-style-type: none;
+}
+
 .cells{
   max-height: 600px;
   overflow:auto;

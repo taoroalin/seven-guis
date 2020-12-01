@@ -1,7 +1,9 @@
 (ns seven-guis.circles
   "The way I dealt with rewinding and non-rewinding parts of the state
    is to keep rewinding parts in a stack of arrays of balls, and keep
-   static parts in a flat array that reference. " (:require [reagent.core :refer [atom]]))
+   static parts in a flat array that reference. 
+   Retrospectively, a change stack would be better here than
+   this hybrid state stack and eternal metadata" (:require [reagent.core :refer [atom]]))
 
 (def default-radius 50)
 (def max-circles 100)
@@ -88,7 +90,6 @@
 (defn circle
   "render circle"
   [state id {x :x y :y d :d}]
-  (println "updating" id)
   (let [r (/ d 2)
         top (- y r)
         left (- x r)]
@@ -116,7 +117,6 @@
                      :eternal (vec (repeat max-circles default-eternal))})
         !canvas (atom nil)]
     (fn []
-      (println @state)
       [:div {:style {:position "relative"}}
        [:div
         [:button {:on-click #(swap! state undo)} "Undo"]
