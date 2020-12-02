@@ -1,29 +1,31 @@
-(ns seven-guis.cells (:require [reagent.core :refer [atom]]
+(ns seven-guis.cells (:require [reagent.core :refer [atom] :as reagent]
                                [clojure.string :as string]
+                               [cljs.core]
                                [instaparse.core :as insta :refer-macros [defparser]]
                                [clojure.walk :refer [postwalk]]))
 ;; Constants
 (def cols 26)
 (def rows 100)
+(def timeout 2000)
 (def letters (map (comp char #(+ 97 %)) (range cols)))
 (def test-strings ["hello =1" "hello=$B1"])
 (def example-csv
   "Range,Pairs
-1,sum=A2+A3
-2,sum=A3+A4
-3,sum=A4+A5
-4,sum=A2+A4
-5,sum=A3+A5
-6,sum=A4+A6
-7,sum=A2+A5
-8,sum=A3+A6
-9,sum=A4+A7
-10,sum=A2+A6
-11,sum=A3+A7
-12,sum=A4+A8
-13,sum=A2+A7
-14,sum=A3+A8")
-(def example-csv-mid "Range,Consecutive Sum,t1,t2
+   1,sum=A2+A3
+   2,sum=A3+A4
+   3,sum=A4+A5
+   4,sum=A2+A4
+   5,sum=A3+A5
+   6,sum=A4+A6
+   7,sum=A2+A5
+   8,sum=A3+A6
+   9,sum=A4+A7
+   10,sum=A2+A6
+   11,sum=A3+A7
+   12,sum=A4+A8
+   13,sum=A2+A7
+   14,sum=A3+A8")
+(def example-csv-mid "Range,Equations,t1,t2
   1,sum=A2+A3,1,2
   2,sum=A3+A4,2,3
   3,sum=A4+A5,3,4
@@ -129,6 +131,11 @@
 (defn letter->idx [letter]
   (- (.charCodeAt letter 0) (if (= (.toUpperCase letter) letter) 65 97)))
 
+(defn queue
+  ([] (cljs.core/PersistentQueue.EMPTY))
+  ([coll]
+   (reduce conj cljs.core/PersistentQueue.EMPTY coll)))
+
 
 (defn clean-ast
   "convert numbers and operations to their own types, and convert letter cols to numbers"
@@ -166,15 +173,6 @@
     (update-in state [:cells pos]
                #(assoc (assoc % :number number) :display display))))
 
-;; Propagating with one reduction is beautiful!
-;; could improve to wait for all dependencies to update to improve performance
-(defn propagate [state pos seen]
-  (if (seen pos) (do (js/alert "you have created an infinite loop. please change it back") state)
-      (let [state (evaluate state pos)
-            seen (conj seen pos)
-            propagate #(propagate %1 %2 seen)]
-        (reduce propagate state (get-in state [:cells pos :backlinks])))))
-
 (defn add-backlinks [state pos]
   (assoc state :cells
          (reduce (fn [cells link]
@@ -209,37 +207,9 @@
                                         :equation ast
                                         :display string
                                         :links links}))
-            state (add-backlinks state pos)]
+            state (add-backlinks state pos)
+            state (update state :dirty #(conj % pos))]
         state))))
-
-(defn set-cell
-  "this function is in charge of swapping the cells after input.
-   it takes a string all the way to a parsed, 
-   evaluated, and propagated equation"
-  [state pos string]
-  (swap! state
-         (fn [state]
-           (let [ast (string->ast string)]
-             (if (insta/failure? ast)
-               (update-in state [:cells pos]
-                          #(merge % {:raw string
-                                     :display string
-                                     :syntax-error? (if (= (count string) 0)
-                                                      false true)}))
-               (let [ast (clean-ast ast)
-                     _ (println ast)
-                     links (ast->links ast)
-                     equation? (coll? (second ast))
-                     state (remove-backlinks state pos)
-                     state (update-in state [:cells pos]
-                                      #(merge % {:raw string
-                                                 :syntax-error? false
-                                                 :equation ast
-                                                 :links links
-                                                 :equation? equation?}))
-                     state (add-backlinks state pos)
-                     state (propagate state pos #{})]
-                 state))))))
 
 (defn handle-key [state-atom pos event]
   (let [key (.-key event)
@@ -262,53 +232,76 @@
         updates (for [row (range rows) col (range cols)]
                   [[(+ row row-e) (+ col col-e)]
                    (get-in lines [row col])])
-        state (reduce #(apply add-cell %1 %2) state updates)
-        state (update state :dirty #(into % (map first updates)))]
+        state (reduce #(apply add-cell %1 %2) state updates)]
     state))
 
-(defn propagate-dirty [state]
-  (loop []))
+(defn trace-dirty
+  "Mark all cells that depend on dirty cells as dirty"
+  [{dirty :dirty :as state}]
+  (loop [todo dirty done #{}]
+    (if (empty? todo) (assoc state :dirty done)
+        (let [cur (first todo)
+              new-done (conj done cur)
+              deps (get-in state [:cells cur :backlinks])
+              novel-deps (filter (comp not done) deps)
+              new-todo (into (disj todo cur) novel-deps)]
+          (recur new-todo new-done)))))
 
 (defn evaluate-cells [{dirty :dirty :as state}]
   (let [changed dirty
-        state (propagate-dirty state)]))
+        all-dirty (:dirty (trace-dirty state))]
+    (loop [queue (queue changed) dirty all-dirty state state steps-idle 0]
+      (if (empty? queue) (assoc state :dirty #{})
+          (if (>= steps-idle (count queue)) (do (js/alert "infinite loop. please remove") (assoc state :dirty #{}))
+              (let [cur (first queue)
+                    queue (pop queue)
+                    links (get-in state [:cells cur :links])
+                    backlinks (get-in state [:cells cur :backlinks])]
+                (if (every? #(not (dirty %)) links)
+                  (recur (into queue backlinks) (disj dirty cur) (evaluate state cur) 0)
+                  (recur (conj queue cur) dirty state (inc steps-idle)))))))))
 
+(defn cell [state cell pos]
+  ^{:key (pos 1)} [:td {:class [(when (:syntax-error? cell) "syntax-error") (when (:equation? cell) "equation")]
+                        :on-click #(swap! state assoc :editing pos)}
+                   (:display cell)])
+
+(defn editing-cell [state cell pos]
+  ^{:key (pos 1)}
+  [:td#editing
+   [:input {:auto-focus true
+            :default-value (:raw cell)
+            :on-paste #(do (.preventDefault %)
+                           (swap! state paste-csv (.getData (.-clipboardData %) "text")))
+            :on-change #(swap! state add-cell pos (-> % .-target .-value))
+            :on-key-down #(handle-key state pos %)}]])
 (defn cells
   "it's a spreadsheet. it's virtue is it's less code than real spreadsheets"
   []
   (let
    [state (atom {:cells {[1 0] {:number 1 :raw "1" :display "1" :links #{} :backlinks #{}}}
                  :dirty #{} ;; pos's ([0 0]) that need to be evaluated
-                 :editing [0 0]})
-    cell (fn [cell pos]
-           ^{:key (pos 1)} [:td {:class [(when (:syntax-error? cell) "syntax-error") (when (:equation? cell) "equation")]
-                                 :on-click #(swap! state assoc :editing pos)}
-                            (:display cell)])
-    editing-cell (fn [cell pos]
-                   ^{:key (pos 1)}
-                   [:td#editing
-                    [:input {:auto-focus true
-                             :default-value (:raw cell)
-                             :on-paste #(do (.preventDefault %)
-                                            (swap! state paste-csv (.getData (.-clipboardData %) "text")))
-                             :on-change #(set-cell state pos (-> % .-target .-value))
-                             :on-key-down #(handle-key state pos %)}]])]
-    (fn []
-      (time (paste-csv @state example-csv-mid))
+                 :editing [0 0]})]
+    (reagent/create-class
+     {:component-did-update #(when (not-empty (:dirty @state)) (println "evaluating") (swap! state evaluate-cells))
+      :reagent-render
+      (fn []
       ;;(println "state" @state)
-      [:div.cells
-       [:p "Type an equation into the grid." [:br]
-        "it supports arithmetic, will support ranges soon" [:br]
-        "Here's an example: " [:code "result = A1+A2+1"]]
-       [:p "Navigate with Tab, Shift+Tab, Enter, and UpArrow"]
-       [:table
-        [:thead [:tr [:th] (for [letter letters] ^{:key letter} [:th letter])]]
-        [:tbody
-         (let [{cells :cells editing :editing} @state]
-           (for [i (range rows)]
-             ^{:key i}
-             [:tr [:td.row-header i]
-              (for [j (range cols)]
-                ^{:key j} (if (= editing [i,j])
-                            ^{:key j} [editing-cell (cells [i,j]) [i,j]]
-                            ^{:key j} [cell (cells [i,j]) [i j]]))]))]]])))
+        [:div.cells
+         [:p "Type an equation into the grid." [:br]
+          "it supports arithmetic, will support ranges soon" [:br]
+          "Here's an example: " [:code "result = A1+A2+1"]]
+         [:p "Navigate with Tab, Shift+Tab, Enter, and UpArrow"]
+         [:p "You can paste csv into it too"]
+         [:button {:on-click #(.writeText (.-clipboard js/navigator) example-csv-mid)} "Copy Example CSV"]
+         [:table
+          [:thead [:tr [:th] (for [letter letters] ^{:key letter} [:th letter])]]
+          [:tbody
+           (let [{cells :cells editing :editing} @state]
+             (for [i (range rows)]
+               ^{:key i}
+               [:tr [:td.row-header i]
+                (for [j (range cols)]
+                  ^{:key j} (if (= editing [i,j])
+                              ^{:key j} [editing-cell state (cells [i,j]) [i,j]]
+                              ^{:key j} [cell state (cells [i,j]) [i j]]))]))]]])})))
