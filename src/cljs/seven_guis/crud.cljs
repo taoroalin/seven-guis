@@ -66,8 +66,6 @@
                      :filter ""
                      :first ""
                      :last ""
-                     :pad 0
-                     :pad-bottom 0
                      :selected nil})]
     (fn []
       [:div

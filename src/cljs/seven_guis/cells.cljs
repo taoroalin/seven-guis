@@ -255,21 +255,30 @@
     (when (not= new-editing pos)
       (swap! state-atom assoc :editing new-editing))))
 
-(defn paste-csv [{cells :cells [row-e col-e] :editing :as state} csv]
+(defn paste-csv [{[row-e col-e] :editing :as state} csv]
   (let [lines (mapv #(vec (string/split % ",")) (string/split csv "\n"))
         rows (count lines)
         cols (apply max (map count lines))
         updates (for [row (range rows) col (range cols)]
                   [[(+ row row-e) (+ col col-e)]
                    (get-in lines [row col])])
-        state (reduce #(apply add-cell %1 %2) state updates)]
+        state (reduce #(apply add-cell %1 %2) state updates)
+        state (update state :dirty #(into % (map first updates)))]
     state))
+
+(defn propagate-dirty [state]
+  (loop []))
+
+(defn evaluate-cells [{dirty :dirty :as state}]
+  (let [changed dirty
+        state (propagate-dirty state)]))
 
 (defn cells
   "it's a spreadsheet. it's virtue is it's less code than real spreadsheets"
   []
   (let
    [state (atom {:cells {[1 0] {:number 1 :raw "1" :display "1" :links #{} :backlinks #{}}}
+                 :dirty #{} ;; pos's ([0 0]) that need to be evaluated
                  :editing [0 0]})
     cell (fn [cell pos]
            ^{:key (pos 1)} [:td {:class [(when (:syntax-error? cell) "syntax-error") (when (:equation? cell) "equation")]
@@ -280,7 +289,8 @@
                    [:td#editing
                     [:input {:auto-focus true
                              :default-value (:raw cell)
-                             :on-paste #(do (println "pasting") (.preventDefault %) (swap! state paste-csv (.getData (.-clipboardData %) "text")))
+                             :on-paste #(do (.preventDefault %)
+                                            (swap! state paste-csv (.getData (.-clipboardData %) "text")))
                              :on-change #(set-cell state pos (-> % .-target .-value))
                              :on-key-down #(handle-key state pos %)}]])]
     (fn []
