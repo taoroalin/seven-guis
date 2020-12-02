@@ -42,6 +42,7 @@ li{
   border-radius:0;
   height:100%;
   width:100%;
+  font-size: 16px;
 }
 .cells .equation{
   border: 2px solid black;
