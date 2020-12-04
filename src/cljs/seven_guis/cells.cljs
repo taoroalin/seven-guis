@@ -1,7 +1,7 @@
 (ns seven-guis.cells (:require [reagent.core :refer [atom] :as reagent]
                                [clojure.string :as string]
                                [cljs.pprint :refer [pprint write]]
-                               [seven-guis.examples :refer [example-csv-fibonacci]]
+                               [seven-guis.examples :refer [example-csv-fibonacci example-csv-conv]]
                                [instaparse.core :as insta :refer-macros [defparser]]
                                [clojure.walk :refer [postwalk]]))
 
@@ -187,6 +187,7 @@
          [:p "Navigate with Tab, Shift+Tab, Enter, and UpArrow"]
          [:p "You can paste csv into it too"]
          [:button {:on-click #(.writeText (.-clipboard js/navigator) example-csv-fibonacci)} "Copy Fibonacci CSV"]
+         [:button {:on-click #(.writeText (.-clipboard js/navigator) example-csv-conv)} "Copy Convolution CSV"]
          [:table
           [:thead [:tr [:th] (for [letter letters] ^{:key letter} [:th letter])]]
           [:tbody

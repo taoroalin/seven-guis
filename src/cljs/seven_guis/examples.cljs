@@ -1,6 +1,10 @@
 (ns seven-guis.examples)
 (def example-csv-conv
-  (apply str (interpose "\n" (map #(apply str (for [x (range 97 (+ 97 25))] (str "=" (char x) % "+" (char x) (inc  %) "+" (char x) (+ 2 %) ","))) (range 99)))))
+  (apply str
+         (interpose "\n"
+                    (map #(apply str % ","
+                                 (interpose "," (for [x (range 97 (+ 97 25))] (str "=" "(" (char x) % "+" (char x) (inc %) "+" (char x) (+ 2 %) ")/3"))))
+                         (range 99)))))
 example-csv-conv
 (def example-csv
   "Range,Pairs
