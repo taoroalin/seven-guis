@@ -14,7 +14,6 @@
 (defn letter->idx [letter]
   (- (.charCodeAt letter 0) (if (= (.toUpperCase letter) letter) 65 97)))
 
-
 ;; parsing equations and manipulating ast
 
 ;; generate parser from EBNF at compile time
@@ -22,15 +21,15 @@
 (defn clean-ast
   "convert numbers and operations to their own types, and convert letter cols to numbers"
   [ast]
-  (insta/transform
-   {:number js/parseInt
-    :op {"+" + "-" - "*" * "/" /}
-    :ref
-    (fn [letter number]
-      (vector :ref
-              (js/parseInt number)
-              (letter->idx (str letter))))}
-   ast))
+  (let [ast (insta/transform
+             {:number js/parseInt
+              :ref
+              (fn [letter number]
+                (vector :ref
+                        (js/parseInt number)
+                        (letter->idx (str letter))))}
+             ast)]
+    ast))
 
 (defn ast->links
   "scrape all cell refs from the ast into a set"
@@ -41,7 +40,6 @@
                       :described smoosh
                       :naked-operation smoosh}
                      ast)))
-
 
 ;; State transition functions
 (defn add-backlinks [state pos]
@@ -75,7 +73,7 @@
             state (remove-backlinks state pos)
             state (update-in state [:cells pos]
                              #(merge % {:raw string
-                                        :equation ast
+                                        :ast ast
                                         :display string
                                         :links links}))
             state (add-backlinks state pos)
@@ -119,14 +117,14 @@
           (recur new-todo new-done)))))
 
 (defn evaluate [state pos]
-  (let [equation (get-in state [:cells pos :equation])
+  (let [equation (get-in state [:cells pos :ast])
         get-number (fn [i j] (get-in state [:cells [i j] :number] 0))
         described (insta/transform
                    {:ref get-number
+                    :op {"+" + "-" - "*" * "/" /}
                     :naked-operation (fn [a op b] (op a b))} equation)
-        number (let [result (second (insta/transform {:described second} described))]
-                 (if (number? result) result 0)) ;; improve
-        _ (println "pos" pos "number" number)
+        number (let [result (second (insta/transform {:described #(identity %2)} described))]
+                 result) ;; improve
         display (second (insta/transform {:described (fn [text number] (str text "=" number))}
                                          described))]
     (update-in state [:cells pos]
@@ -156,7 +154,7 @@
 
 ;; rendering
 (defn cell [state cell pos]
-  ^{:key (pos 1)} [:td {:class [(when (:syntax-error? cell) "syntax-error") (when (:equation? cell) "equation")]
+  ^{:key (pos 1)} [:td {:class [(when (:syntax-error? cell) "syntax-error") (when (:ast? cell) "equation")]
                         :on-click #(swap! state assoc :editing pos)}
                    (:display cell)])
 
@@ -174,14 +172,14 @@
   "it's a spreadsheet. it's virtue is it's less code than real spreadsheets"
   []
   (let
-   [state (atom {:cells {[1 0] {:equation [:toplevel 1] :number 1 :raw "1" :display "1" :links #{} :backlinks #{}}}
+   [state (atom {:cells {[1 0] {:ast [:toplevel 1] :number 1 :raw "1" :display "1" :links #{} :backlinks #{}}}
                  :dirty #{} ;; pos's ([0 0]) that need to be evaluated
                  :editing [0 0]})]
     (reagent/create-class
      {:component-did-update #(when (not-empty (:dirty @state)) (time (swap! state evaluate-cells)))
       :reagent-render
       (fn []
-        (write @state)
+        ;;(write @state)
         [:div.cells
          [:p "Type an equation into the grid." [:br]
           "it supports arithmetic, will support ranges soon" [:br]
