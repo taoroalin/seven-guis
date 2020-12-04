@@ -1,142 +1,24 @@
 (ns seven-guis.cells (:require [reagent.core :refer [atom] :as reagent]
                                [clojure.string :as string]
-                               [cljs.core]
+                               [cljs.pprint :refer [pprint write]]
+                               [seven-guis.examples :refer [example-csv-fibonacci]]
                                [instaparse.core :as insta :refer-macros [defparser]]
                                [clojure.walk :refer [postwalk]]))
-;; Constants
+
+;; Constants & non-state utils
 (def cols 26)
 (def rows 100)
 (def timeout 2000)
 (def letters (map (comp char #(+ 97 %)) (range cols)))
 (def test-strings ["hello =1" "hello=$B1"])
-(def example-csv
-  "Range,Pairs
-   1,sum=A2+A3
-   2,sum=A3+A4
-   3,sum=A4+A5
-   4,sum=A2+A4
-   5,sum=A3+A5
-   6,sum=A4+A6
-   7,sum=A2+A5
-   8,sum=A3+A6
-   9,sum=A4+A7
-   10,sum=A2+A6
-   11,sum=A3+A7
-   12,sum=A4+A8
-   13,sum=A2+A7
-   14,sum=A3+A8")
-(def example-csv-mid "Range,Equations,t1,t2
-  1,sum=A2+A3,1,2
-  2,sum=A3+A4,2,3
-  3,sum=A4+A5,3,4
-  4,sum=A2+A4,4,5
-  5,sum=A3+A5,5,6
-  6,sum=A4+A6,6,7
-  7,sum=A2+A5,7,8
-  8,sum=A3+A6,8,9
-  9,sum=A4+A7,9,10
-  10,sum=A2+A6,10,11
-  11,sum=A3+A7,11,12
-  12,sum=A4+A8,12,13
-  13,sum=A2+A7,13,14
-  14,sum=A3+A8,14,15
-  15,sum=A2+A4,15,16
-  16,sum=A3+A5,16,17
-  17,sum=A4+A6,17,18
-  18,sum=A2+A5,18,19
-  19,sum=A3+A6,19,20
-  20,sum=A4+A7,20,21
-  21,sum=A2+A6,21,22
-  22,sum=A3+A7,22,23
-  23,sum=A4+A8,23,24
-  24,sum=A2+A7,24,25
-  25,sum=A3+A8,25,26
-  26,sum=A4+A9,26,27
-  27,sum=A2+A8,27,28
-  28,sum=A3+A9,28,29
-  29,sum=A2+A5,29,30
-  30,sum=A3+A6,30,31
-  31,sum=A4+A7,31,32
-  32,sum=A2+A6,32,33
-  33,sum=A3+A7,33,34
-  34,sum=A4+A8,34,35
-  35,sum=A2+A7,35,36
-  36,sum=A3+A8,36,37
-  37,sum=A4+A9,37,38
-  38,sum=A2+A8,38,39
-  39,sum=A3+A9,39,40
-  40,sum=A4+A10,40,41
-  41,sum=A2+A9,41,42
-  42,sum=A3+A10,42,43
-  43,sum=A2+A6,43,44
-  44,sum=A3+A7,44,45
-  45,sum=A4+A8,45,46
-  46,sum=A2+A7,46,47
-  47,sum=A3+A8,47,48
-  48,sum=A4+A9,48,49
-  49,sum=A2+A8,49,50
-  50,sum=A3+A9,50,51
-  51,sum=A4+A10,51,52
-  52,sum=A2+A9,52,53
-  53,sum=A3+A10,53,54
-  54,sum=A4+A11,54,55
-  55,sum=A2+A10,55,56
-  56,sum=A3+A11,56,57
-  57,sum=A2+A7,57,58
-  58,sum=A3+A8,58,59
-  59,sum=A4+A9,59,60
-  60,sum=A2+A8,60,61
-  61,sum=A3+A9,61,62
-  62,sum=A4+A10,62,63
-  63,sum=A2+A9,63,64
-  64,sum=A3+A10,64,65
-  65,sum=A4+A11,65,66
-  66,sum=A2+A10,66,67
-  67,sum=A3+A11,67,68
-  68,sum=A4+A12,68,69
-  69,sum=A2+A11,69,70
-  70,sum=A3+A12,70,71
-  71,sum=A2+A8,71,72
-  72,sum=A3+A9,72,73
-  73,sum=A4+A10,73,74
-  74,sum=A2+A9,74,75
-  75,sum=A3+A10,75,76
-  76,sum=A4+A11,76,77
-  77,sum=A2+A10,77,78
-  78,sum=A3+A11,78,79
-  79,sum=A4+A12,79,80
-  80,sum=A2+A11,80,81
-  81,sum=A3+A12,81,82
-  82,sum=A4+A13,82,83
-  83,sum=A2+A12,83,84
-  84,sum=A3+A13,84,85
-  85,sum=A2+A9,85,86
-  86,sum=A3+A10,86,87
-  87,sum=A4+A11,87,88
-  88,sum=A2+A10,88,89
-  89,sum=A3+A11,89,90
-  90,sum=A4+A12,90,91
-  91,sum=A2+A11,91,92
-  92,sum=A3+A12,92,93
-  93,sum=A4+A13,93,94
-  94,sum=A2+A12,94,95
-  95,sum=A3+A13,95,96
-  96,sum=A4+A14,96,97
-  97,sum=A2+A13,97,98
-  98,sum=A3+A14,98,99")
-
-;; generate parser from EBNF at compile time
-(defparser string->ast "src/cells.insta" :auto-whitespace :standard)
-
 (defn letter->idx [letter]
   (- (.charCodeAt letter 0) (if (= (.toUpperCase letter) letter) 65 97)))
 
-(defn queue
-  ([] (cljs.core/PersistentQueue.EMPTY))
-  ([coll]
-   (reduce conj cljs.core/PersistentQueue.EMPTY coll)))
 
+;; parsing equations and manipulating ast
 
+;; generate parser from EBNF at compile time
+(defparser string->ast "src/cells.insta" :auto-whitespace :standard)
 (defn clean-ast
   "convert numbers and operations to their own types, and convert letter cols to numbers"
   [ast]
@@ -160,19 +42,8 @@
                       :naked-operation smoosh}
                      ast)))
 
-(defn evaluate [state pos]
-  (let [equation (get-in state [:cells pos :equation])
-        get-number (fn [i j] (get-in state [:cells [i j] :number] 0))
-        described (insta/transform
-                   {:ref get-number
-                    :naked-operation (fn [a op b] (op a b))} equation)
-        number (let [result (second (insta/transform {:discribed second} described))]
-                 (if (number? result) result 0)) ;; improve
-        display (second (insta/transform {:discribed (fn [text number] (str text "=" number))}
-                                         described))]
-    (update-in state [:cells pos]
-               #(assoc (assoc % :number number) :display display))))
 
+;; State transition functions
 (defn add-backlinks [state pos]
   (assoc state :cells
          (reduce (fn [cells link]
@@ -236,7 +107,7 @@
     state))
 
 (defn trace-dirty
-  "Mark all cells that depend on dirty cells as dirty"
+  "Propagate dirty status to dependents"
   [{dirty :dirty :as state}]
   (loop [todo dirty done #{}]
     (if (empty? todo) (assoc state :dirty done)
@@ -247,20 +118,43 @@
               new-todo (into (disj todo cur) novel-deps)]
           (recur new-todo new-done)))))
 
-(defn evaluate-cells [{dirty :dirty :as state}]
-  (let [changed dirty
-        all-dirty (:dirty (trace-dirty state))]
-    (loop [queue (queue changed) dirty all-dirty state state steps-idle 0]
-      (if (empty? queue) (assoc state :dirty #{})
-          (if (>= steps-idle (count queue)) (do (js/alert "infinite loop. please remove") (assoc state :dirty #{}))
-              (let [cur (first queue)
-                    queue (pop queue)
-                    links (get-in state [:cells cur :links])
-                    backlinks (get-in state [:cells cur :backlinks])]
-                (if (every? #(not (dirty %)) links)
-                  (recur (into queue backlinks) (disj dirty cur) (evaluate state cur) 0)
-                  (recur (conj queue cur) dirty state (inc steps-idle)))))))))
+(defn evaluate [state pos]
+  (let [equation (get-in state [:cells pos :equation])
+        get-number (fn [i j] (get-in state [:cells [i j] :number] 0))
+        described (insta/transform
+                   {:ref get-number
+                    :naked-operation (fn [a op b] (op a b))} equation)
+        number (let [result (second (insta/transform {:described second} described))]
+                 (if (number? result) result 0)) ;; improve
+        _ (println "pos" pos "number" number)
+        display (second (insta/transform {:described (fn [text number] (str text "=" number))}
+                                         described))]
+    (update-in state [:cells pos]
+               #(assoc % :number number :display display))))
 
+(defn evaluate-cells [state]
+  (let [state (trace-dirty state)
+        to-dirty-pair (fn [state pos] [(count (filter (:dirty state) (get-in state [:cells pos :links]))) pos])
+        by-dirty (into (sorted-set)
+                       (map #(to-dirty-pair state %))
+                       (:dirty state))
+        dirty-map (into {} (map (comp vec reverse)) by-dirty)]
+    (loop [by-dirty by-dirty dirty-map dirty-map state state]
+      (if (empty? by-dirty) (assoc state :dirty #{})
+          (if (> 0 (first (first by-dirty))) (do (js/alert "infinite loop. please remove") (assoc state :dirty #{}))
+              (let [cur-pair (first by-dirty)
+                    by-dirty (disj by-dirty cur-pair)
+                    cur (second cur-pair)
+                    dirty-map (update dirty-map cur dec)
+                    backlinks (get-in state [:cells cur :backlinks])
+                    by-dirty (reduce #(conj (disj %1 [(dirty-map %2) %2]) [(dec (dirty-map %2)) %2])
+                                     by-dirty
+                                     backlinks)
+                    dirty-map (reduce #(update %1 %2 dec) dirty-map backlinks)
+                    state (evaluate state cur)]
+                (recur by-dirty dirty-map state)))))))
+
+;; rendering
 (defn cell [state cell pos]
   ^{:key (pos 1)} [:td {:class [(when (:syntax-error? cell) "syntax-error") (when (:equation? cell) "equation")]
                         :on-click #(swap! state assoc :editing pos)}
@@ -275,25 +169,26 @@
                            (swap! state paste-csv (.getData (.-clipboardData %) "text")))
             :on-change #(swap! state add-cell pos (-> % .-target .-value))
             :on-key-down #(handle-key state pos %)}]])
+
 (defn cells
   "it's a spreadsheet. it's virtue is it's less code than real spreadsheets"
   []
   (let
-   [state (atom {:cells {[1 0] {:number 1 :raw "1" :display "1" :links #{} :backlinks #{}}}
+   [state (atom {:cells {[1 0] {:equation [:toplevel 1] :number 1 :raw "1" :display "1" :links #{} :backlinks #{}}}
                  :dirty #{} ;; pos's ([0 0]) that need to be evaluated
                  :editing [0 0]})]
     (reagent/create-class
-     {:component-did-update #(when (not-empty (:dirty @state)) (println "evaluating") (swap! state evaluate-cells))
+     {:component-did-update #(when (not-empty (:dirty @state)) (time (swap! state evaluate-cells)))
       :reagent-render
       (fn []
-      ;;(println "state" @state)
+        (write @state)
         [:div.cells
          [:p "Type an equation into the grid." [:br]
           "it supports arithmetic, will support ranges soon" [:br]
           "Here's an example: " [:code "result = A1+A2+1"]]
          [:p "Navigate with Tab, Shift+Tab, Enter, and UpArrow"]
          [:p "You can paste csv into it too"]
-         [:button {:on-click #(.writeText (.-clipboard js/navigator) example-csv-mid)} "Copy Example CSV"]
+         [:button {:on-click #(.writeText (.-clipboard js/navigator) example-csv-fibonacci)} "Copy Fibonacci CSV"]
          [:table
           [:thead [:tr [:th] (for [letter letters] ^{:key letter} [:th letter])]]
           [:tbody
