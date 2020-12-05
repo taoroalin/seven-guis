@@ -13,6 +13,8 @@
 (def test-strings ["hello =1" "hello=$B1"])
 (defn letter->idx [letter]
   (- (.charCodeAt letter 0) (if (= (.toUpperCase letter) letter) 65 97)))
+(defn copy-text [text]
+  #(.writeText (.-clipboard js/navigator) text))
 
 ;; parsing equations and manipulating ast
 
@@ -80,6 +82,15 @@
             state (update state :dirty #(conj % pos))]
         state))))
 
+(defn parse-string
+  "Adds cell from string, including ast, backlinks"
+  [string]
+  (let [ast (string->ast string)]
+    (if (insta/failure? ast) {}
+        (let [ast (clean-ast ast)
+              links (ast->links ast)]
+          {:ast ast :links links}))))
+
 (defn handle-key [state-atom pos event]
   (let [key (.-key event)
         shift (.-shiftKey event)
@@ -101,8 +112,10 @@
         updates (for [row (range rows) col (range cols)]
                   [[(+ row row-e) (+ col col-e)]
                    (get-in lines [row col])])
+        parsed (time (for [row (range rows) col (range cols)]
+                       (parse-string (get-in lines [row col]))))
         state (reduce #(apply add-cell %1 %2) state updates)]
-    state))
+    (if (= 1 1) state parsed)))
 
 (defn trace-dirty
   "Propagate dirty status to dependents"
@@ -176,7 +189,7 @@
                  :dirty #{} ;; pos's ([0 0]) that need to be evaluated
                  :editing [0 0]})]
     (reagent/create-class
-     {:component-did-update #(when (not-empty (:dirty @state)) (time (swap! state evaluate-cells)))
+     {:component-did-update #(when (not-empty (:dirty @state)) (swap! state evaluate-cells))
       :reagent-render
       (fn []
         ;;(write @state)
@@ -186,8 +199,8 @@
           "Here's an example: " [:code "result = A1+A2+1"]]
          [:p "Navigate with Tab, Shift+Tab, Enter, and UpArrow"]
          [:p "You can paste csv into it too"]
-         [:button {:on-click #(.writeText (.-clipboard js/navigator) example-csv-fibonacci)} "Copy Fibonacci CSV"]
-         [:button {:on-click #(.writeText (.-clipboard js/navigator) example-csv-conv)} "Copy Convolution CSV"]
+         [:button {:on-click (copy-text example-csv-fibonacci)} "Copy Fibonacci CSV"]
+         [:button {:on-click (copy-text example-csv-conv)} "Copy Convolution CSV"]
          [:table
           [:thead [:tr [:th] (for [letter letters] ^{:key letter} [:th letter])]]
           [:tbody
