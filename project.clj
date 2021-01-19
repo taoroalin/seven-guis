@@ -68,7 +68,7 @@
 
   :figwheel
   {:http-server-root "public"
-   :server-port 3449
+   :server-port 3448
    :nrepl-port 7002
    :nrepl-middleware [cider.piggieback/wrap-cljs-repl]
    :css-dirs ["resources/public/css"]

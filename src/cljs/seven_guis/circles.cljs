@@ -121,8 +121,8 @@
        [:div
         [:button {:on-click #(swap! state undo)} "Undo"]
         [:button {:on-click #(swap! state redo)} "Redo"]]
-       [:div {:style {:width "500px"
-                      :height "500px"
+       [:div {:style {:height "700px"
+                      :width "100%"
                       :position "relative"
                       :border "1px solid black"}
               :ref #(reset! !canvas %)

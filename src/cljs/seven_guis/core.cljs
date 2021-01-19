@@ -15,7 +15,11 @@
    [seven-guis.cells :refer [cells]]))
 
 (defn box [name contents]
-  [:div {:style {:border "1px solid black" :border-radius "4px" :padding "10px"}} [:h3 name] contents])
+  [:div {:style {:border "1px solid darkgrey" :border-radius "10px" :padding "30px" :margin "20px"}} [:h3 name] contents])
+
+(defn circles-page []
+  (fn []
+    [box "Circles" [circles]]))
 
 (defn home-page []
   (fn []
@@ -35,9 +39,13 @@
 (def router
   (reitit/router
    [["/" :index]
-    ["/items"
-     ["" :items]
-     ["/:item-id" :item]]
+    ["/cells" :cells]
+    ["/circles" :circles]
+    ["/crud" :crud]
+    ["/timer" :timer]
+    ["/flight" :flight-scheduler]
+    ["/temp" :temperature-converter]
+    ["/counter" :counter]
     ["/about" :about]]))
 
 (defn path-for [route & [params]]
@@ -79,10 +87,15 @@
 
 (defn page-for [route]
   (case route
+    :circles #'circles-page
     :index #'home-page
     :about #'about-page
-    :items #'items-page
-    :item #'item-page))
+    :crud #'crud
+    :cells #'cells
+    :timer #'timer
+    :flight #'flight-scheduler
+    :temperature-converter #'temperature-converter
+    :counter #'counter))
 
 
 ;; -------------------------

@@ -36,10 +36,13 @@
   (reitit-ring/ring-handler
    (reitit-ring/router
     [["/" {:get {:handler index-handler}}]
-     ["/items"
-      ["" {:get {:handler index-handler}}]
-      ["/:item-id" {:get {:handler index-handler
-                          :parameters {:path {:item-id int?}}}}]]
+     ["/crud" {:get {:handler index-handler}}]
+     ["/counter" {:get {:handler index-handler}}]
+     ["/temp" {:get {:handler index-handler}}]
+     ["/cells" {:get {:handler index-handler}}]
+     ["/circles" {:get {:handler index-handler}}]
+     ["/flight" {:get {:handler index-handler}}]
+     ["/timer" {:get {:handler index-handler}}]
      ["/about" {:get {:handler index-handler}}]])
    (reitit-ring/routes
     (reitit-ring/create-resource-handler {:path "/" :root "/public"})

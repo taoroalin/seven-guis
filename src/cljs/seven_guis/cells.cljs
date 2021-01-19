@@ -5,6 +5,7 @@
                                [instaparse.core :as insta :refer-macros [defparser]]
                                [clojure.walk :refer [postwalk]]))
 
+
 ;; Constants & non-state utils
 (def cols 26)
 (def rows 100)
