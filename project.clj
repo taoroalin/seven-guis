@@ -19,7 +19,8 @@
                  [pez/clerk "1.0.0"]
                  [venantius/accountant "0.2.5"
                   :exclusions [org.clojure/tools.reader]]
-                 [instaparse "1.4.10"]]
+                 [instaparse "1.4.10"]
+                 [persistent-sorted-set "0.1.2"]]
 
   :plugins [[lein-environ "1.1.0"]
             [lein-cljsbuild "1.1.7"]

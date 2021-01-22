@@ -6,6 +6,7 @@
    [reitit.frontend :as reitit]
    [clerk.core :as clerk]
    [accountant.core :as accountant]
+   [seven-guis.scratch :as scratch]
    [seven-guis.counter :refer [counter]]
    [seven-guis.temperature :refer [temperature-converter]]
    [seven-guis.flight :refer [flight-scheduler]]

@@ -1,19 +1,26 @@
 (ns seven-guis.crud
   (:require [reagent.core :refer [atom]]
             [clojure.string]
-            [seven-guis.common :refer [basic-text-input atom-text-input]]))
+            [seven-guis.common :refer [basic-text-input atom-text-input]]
+            [me.tonsky.persistent-sorted-set :as sset]))
+
+;; current performance overview: names are stored in a sorted-set as strings, 
+;; with last and first concatenated together like `last,first`
+;; use rsubseq to get the sequence of people whos last names start with 
+;; a prefix. Originally used sorted-set, but switched to tonsky's persistent-sorted-set for performance.
+;;  
+;; Currently works with 100,000 names. Performance bottleneck is loading up all the names into sorted-set
+;; 
+;; How I would get up to a million: use a sorted array, and a list of changes. Only re-sort the array
+;; when there are enough changes. That would be inspired by google search, b+ trees
 
 (def sep "`")
 (def li-height 26.4)
 (def buffer "number of extra names to render" 40)
 
 (defn random-person []
-  (let [random-name #(str (rand-int 1000000))]
+  (let [random-name #(rand-int 1000000)]
     (str (random-name) sep (random-name))))
-
-(def test-names (repeatedly
-                 100000
-                 random-person))
 
 
 (defn filter-people [{filter :filter people :people :as state}]
@@ -21,7 +28,7 @@
         (if (= filter "") (seq people)
             (let [last-idx (- (count filter) 1)
                   after-filter (str (subs filter 0 last-idx) (char (+ (.charCodeAt filter last-idx) 1)))]
-              (rsubseq people >= filter < after-filter)))]
+              (sset/slice people filter after-filter)))]
     (merge state {:filtered-generator filter-gen :filtered-vector []})))
 
 (defn scroll-load [{gen :filtered-generator vec :filtered-vector :as state} scroll]
@@ -38,6 +45,7 @@
     (-> state
         (assoc :filter "")
         (assoc :last "")
+        (assoc :first "")
         (assoc :people (conj people person))
         (assoc :selected person)
         (index))))
@@ -89,4 +97,10 @@
         [:button {:on-click #(swap! state remove-person)} "Delete"]
         [:button {:on-click #(swap! state (comp index (fn [state]
                                                         (assoc state :people
-                                                               (into (:people state) test-names)))))} "Load 100,000 names"]]])))
+                                                               (into (sset/sorted-set) (repeatedly
+                                                                                        100000
+                                                                                        random-person))))))} "Load 100,000 names"]]])))
+
+(pr-str (repeatedly
+        1000000
+        random-person))
