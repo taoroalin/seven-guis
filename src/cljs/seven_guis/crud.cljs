@@ -9,9 +9,9 @@
 ;; use rsubseq to get the sequence of people whos last names start with 
 ;; a prefix. Originally used sorted-set, but switched to tonsky's persistent-sorted-set for performance.
 ;;  
-;; Currently works with 1000,000 names. Performance bottleneck is loading up all the names into sorted-set.
-;; Sorting with cljs / js code isn't fast enough for 1,000,000 items. JS built in sort is fast enough,
-;; though, so the fastest way would be to sort single array, then break that up into b+ tree *without comparing*
+;; Currently works with 1,000,000 names. I am happy with this level of performance.
+;; Just sending 10,000,000 names over https would be impractical. 
+;; (i guess if there were enough John Smiths then it could be compressed ??)
 
 (def sep "`")
 (def li-height 26.4)
@@ -64,7 +64,7 @@
      rendered-name]))
 
 (defn crud []
-  (let [state (atom {:people (sorted-set)
+  (let [state (atom {:people (sset/sorted-set)
                      :filtered-generator ()
                      :filtered-vector []
                      :scroll 0
