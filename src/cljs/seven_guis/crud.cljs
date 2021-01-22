@@ -94,4 +94,4 @@
         [:button {:on-click #(swap! state remove-person)} "Delete"]
         [:button {:on-click #(swap! state (comp index (fn [state]
                                                         (assoc state :people
-                                                               (into (sset/sorted-set) (.map (js/Array.from (js/Array 1000000)) (fn [_ i a] (str i sep (+ i 842)))))))))} "Load 1,000,000 names"]]])))
+                                                               (apply sset/sorted-set (.map (js/Array.from (js/Array 1000000)) (fn [_ i a] (str i sep (+ i 842)))))))))} "Load 1,000,000 names"]]])))
