@@ -9,19 +9,16 @@
 ;; use rsubseq to get the sequence of people whos last names start with 
 ;; a prefix. Originally used sorted-set, but switched to tonsky's persistent-sorted-set for performance.
 ;;  
-;; Currently works with 100,000 names. Performance bottleneck is loading up all the names into sorted-set
-;; 
-;; How I would get up to a million: use a sorted array, and a list of changes. Only re-sort the array
-;; when there are enough changes. That would be inspired by google search, b+ trees
+;; Currently works with 1000,000 names. Performance bottleneck is loading up all the names into sorted-set.
+;; Sorting with cljs / js code isn't fast enough for 1,000,000 items. JS built in sort is fast enough,
+;; though, so the fastest way would be to sort single array, then break that up into b+ tree *without comparing*
 
 (def sep "`")
 (def li-height 26.4)
 (def buffer "number of extra names to render" 40)
 
-(defn random-person []
-  (let [random-name #(rand-int 1000000)]
-    (str (random-name) sep (random-name))))
-
+(defn find-prefix-range [array prefix]
+  ())
 
 (defn filter-people [{filter :filter people :people :as state}]
   (let [filter-gen
@@ -97,10 +94,4 @@
         [:button {:on-click #(swap! state remove-person)} "Delete"]
         [:button {:on-click #(swap! state (comp index (fn [state]
                                                         (assoc state :people
-                                                               (into (sset/sorted-set) (repeatedly
-                                                                                        100000
-                                                                                        random-person))))))} "Load 100,000 names"]]])))
-
-(pr-str (repeatedly
-        1000000
-        random-person))
+                                                               (into (sset/sorted-set) (.map (js/Array.from (js/Array 1000000)) (fn [_ i a] (str i sep (+ i 842)))))))))} "Load 1,000,000 names"]]])))

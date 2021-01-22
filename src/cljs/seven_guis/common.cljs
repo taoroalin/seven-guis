@@ -8,7 +8,7 @@
   [:div [:label {:for name} name]
    [:input {:id name
             :value value
-            :on-input #(update (-> % .-target .-value))}]])
+            :on-change #(update (-> % .-target .-value))}]])
 
 (defn atom-text-input
   "a text input that directly updates an atom"
